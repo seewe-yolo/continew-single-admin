@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.continew.admin.approval.mapper.ApprovalTaskMapper">
+    <select id="selectMyPage" resultType="top.continew.admin.approval.model.resp.ApprovalTaskResp">
+        SELECT t.id, t.instance_id, t.node_name, t.assignee, t.status, t.create_time,
+               t.complete_time, i.title, i.start_user
+        FROM approval_task t
+        INNER JOIN approval_instance i ON i.id = t.instance_id
+        WHERE t.assignee = #{userId}
+        <choose>
+            <when test="completed">AND t.status IN ('APPROVED', 'REJECTED', 'CANCELLED')</when>
+            <otherwise>AND t.status = 'PENDING' AND i.status = 'PENDING' AND i.current_node_id = t.node_id</otherwise>
+        </choose>
+        <if test="query.title != null and query.title != ''">AND i.title LIKE CONCAT('%', #{query.title}, '%')</if>
+        ORDER BY t.create_time DESC, t.id DESC
+    </select>
+</mapper>

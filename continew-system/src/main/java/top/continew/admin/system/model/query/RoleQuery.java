@@ -48,7 +48,7 @@ public class RoleQuery implements Serializable {
     /**
      * 排除的编码列表
      */
-    @Schema(description = "排除的编码列表", example = "[super_admin,tenant_admin]")
+    @Schema(description = "排除的编码列表", example = "[super_admin]")
     @Query(columns = "code", type = QueryType.NOT_IN)
     private List<String> excludeRoleCodes;
 }

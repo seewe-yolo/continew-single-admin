@@ -28,18 +28,15 @@ import top.continew.admin.auth.service.SessionActivityService;
 import top.continew.admin.auth.support.ClientPolicyCache;
 import top.continew.admin.common.context.UserContext;
 import top.continew.admin.common.context.UserContextHolder;
-import top.continew.admin.common.context.UserExtraContext;
 import top.continew.admin.open.util.OpenApiUtils;
 import top.continew.starter.auth.refresh.token.api.AccessSessionValidator;
 import top.continew.starter.auth.refresh.token.support.AccessTokenClaimsReader;
 import top.continew.starter.core.util.ServletUtils;
-import top.continew.starter.extension.tenant.context.TenantContextHolder;
 import top.continew.starter.json.jackson.util.JsonUtils;
 import top.continew.starter.web.model.R;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.util.Objects;
 
 /**
  * Sa-Token 扩展拦截器
@@ -83,10 +80,8 @@ public class SaExtensionInterceptor extends SaInterceptor {
         }
         // 设置上下文
         UserContext userContext = UserContextHolder.getContext();
-        // Sa-Token 只校验 Access Token 自身有效性；这里补充 Session 状态校验，确保用户、
-        // 租户或客户端强制下线后，尚未自然过期的 Access Token 也不能继续访问。
-        // 登录、刷新和退出都由认证服务依据请求体、Cookie 或令牌映射自行确定租户，不能
-        // 使用当前请求残留的租户上下文做普通业务接口的跨租户校验。
+        // Sa-Token 只校验 Access Token 自身有效性；这里补充 Session 状态校验，确保用户
+        // 或客户端强制下线后，尚未自然过期的 Access Token 也不能继续访问。
         boolean authRequest = this.isAuthRequest(request);
         if (!authRequest) {
             String tokenValue = StpUtil.getTokenValue();
@@ -124,28 +119,6 @@ public class SaExtensionInterceptor extends SaInterceptor {
             }
             sessionActivityService.touch(sessionId, clientId);
         }
-        if (authRequest) {
-            return true;
-        }
-        if (userContext == null) {
-            return true;
-        }
-        // 检查用户租户权限
-        if (TenantContextHolder.isTenantEnabled()) {
-            // UserContext 保存在用户级 SaSession，同一用户多租户并发登录时会被后一次
-            // 登录覆盖；租户边界必须使用当前 Access Token 自身的额外上下文。
-            UserExtraContext extraContext = UserContextHolder.getExtraContext();
-            Long userTenantId = extraContext.getTenantId();
-            Long tenantId = TenantContextHolder.getTenantId();
-            if (!Objects.equals(userTenantId, tenantId)) {
-                // 见上方 401 短路的注释：必须在此清除线程本地，避免残留上下文复用。
-                UserContextHolder.clearContext();
-                R r = R.fail(String.valueOf(HttpStatus.FORBIDDEN.value()), "您当前没有访问该租户的权限");
-                response.setStatus(HttpStatus.FORBIDDEN.value());
-                ServletUtils.writeJson(response, JsonUtils.toJsonStr(r));
-                return false;
-            }
-        }
         return true;
     }
 
@@ -161,8 +134,8 @@ public class SaExtensionInterceptor extends SaInterceptor {
     /**
      * 解析当前令牌对应的客户端 ID
      *
-     * <p>必须优先取令牌自身的声明：{@link UserContext} 存在用户级 SaSession 里，同一账号多端并发
-     * 登录时会被后一次登录覆盖（与上方租户校验同理），用它会让 A 端会话按 B 端的闲置策略判定，
+     * <p>必须优先取令牌自身的声明：{@link UserContext} 存在用户级 SaSession，同一账号多端并发
+     * 登录时会被后一次登录覆盖；用它会让 A 端会话按 B 端的闲置策略判定，
      * 轻则该闲置的不闲置，重则正常的会话被误踢。</p>
      *
      * @param tokenValue  当前 Access Token

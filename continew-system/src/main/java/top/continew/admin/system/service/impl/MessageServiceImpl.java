@@ -122,7 +122,7 @@ public class MessageServiceImpl implements MessageService {
         // 发送消息给指定在线用户
         if (CollUtil.isNotEmpty(userIdList)) {
             // 顺序执行：本方法处于 @Transactional 之下，且这里是阻塞式的 Redis 与 WebSocket 调用，
-            // 放到 ForkJoinPool 公共池上既拿不到事务与租户上下文，也会阻塞公共池
+            // 放到 ForkJoinPool 公共池上拿不到事务上下文，也会阻塞公共池
             userIdList.forEach(userId -> {
                 List<String> tokenList = StpUtil.getTokenValueListByLoginId(userId);
                 tokenList.forEach(token -> WebSocketUtils.sendMessageToAll(token, "1"));

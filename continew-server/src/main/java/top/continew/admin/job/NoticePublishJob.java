@@ -34,7 +34,6 @@ import top.continew.admin.system.model.entity.NoticeDO;
 import top.continew.admin.system.service.NoticeService;
 import top.continew.starter.core.constant.PropertiesConstants;
 import top.continew.starter.core.util.CollUtils;
-import top.continew.starter.extension.tenant.annotation.TenantIgnore;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -62,7 +61,6 @@ public class NoticePublishJob {
         /**
          * 定时发布公告
          */
-        @TenantIgnore
         @Scheduled(cron = "0 * * * * ?")
         @Transactional(rollbackFor = Exception.class)
         public void publishNoticeWithSchedule() {
@@ -82,7 +80,6 @@ public class NoticePublishJob {
         /**
          * 通过 Snail Job 定时发布公告
          */
-        @TenantIgnore
         @JobExecutor(name = "NoticePublishJob")
         @Transactional(rollbackFor = Exception.class)
         public void publishNoticeWithScheduleJob() {
@@ -113,8 +110,8 @@ public class NoticePublishJob {
             .toList();
         if (CollUtil.isNotEmpty(needSendMessageList)) {
             // 发送消息
-            // 注意：此处必须顺序执行。本方法运行在 @Transactional + @TenantIgnore 之下，
-            // 而事务连接与租户上下文都绑定在 ThreadLocal 上，ForkJoinPool 线程不会继承，
+            // 注意：此处必须顺序执行。本方法运行在 @Transactional 之下，事务连接绑定在
+            // ThreadLocal 上，ForkJoinPool 线程不会继承；一旦并发执行，消息会脱离事务自动提交，
             // 一旦并发执行，消息会脱离事务自动提交，回滚后公告仍为待发布状态并被下一次调度重复推送
             NoticeService noticeService = SpringUtil.getBean(NoticeService.class);
             needSendMessageList.forEach(noticeService::publish);

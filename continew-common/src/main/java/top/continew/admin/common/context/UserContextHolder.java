@@ -126,7 +126,6 @@ public class UserContextHolder {
         context.setBrowser(Convert.toStr(StpUtil.getExtra(token, "browser")));
         context.setOs(Convert.toStr(StpUtil.getExtra(token, "os")));
         context.setLoginTime(Convert.toLocalDateTime(StpUtil.getExtra(token, "loginTime")));
-        context.setTenantId(Convert.toLong(StpUtil.getExtra(token, "tenantId")));
         context.setClientId(Convert.toStr(StpUtil.getExtra(token, "clientId")));
         return context;
     }
@@ -146,15 +145,6 @@ public class UserContextHolder {
      */
     public static Long getUserId() {
         return ExceptionUtils.exToNull(() -> getContext().getId());
-    }
-
-    /**
-     * 获取租户 ID
-     *
-     * @return 租户 ID
-     */
-    public static Long getTenantId() {
-        return ExceptionUtils.exToNull(() -> getContext().getTenantId());
     }
 
     /**
@@ -196,13 +186,4 @@ public class UserContextHolder {
         return getContext().isSuperAdmin();
     }
 
-    /**
-     * 是否为租户管理员
-     *
-     * @return true：是；false：否
-     */
-    public static boolean isTenantAdmin() {
-        StpUtil.checkLogin();
-        return getContext().isTenantAdmin();
-    }
 }

@@ -52,7 +52,6 @@ import top.continew.admin.auth.support.ClientPolicyCache;
 import top.continew.admin.common.context.UserContext;
 import top.continew.admin.common.context.UserContextHolder;
 import top.continew.starter.auth.refresh.token.api.AccessSessionValidator;
-import top.continew.starter.extension.tenant.context.TenantContextHolder;
 
 /**
  * SaExtensionInterceptor 短路路径线程本地清理测试。
@@ -116,48 +115,17 @@ class SaExtensionInterceptorTest {
                 .thenReturn(factory);
             springUtil.when(() -> SpringUtil.getBean(ObjectMapper.class))
                 .thenReturn(new ObjectMapper());
-            try (MockedStatic<TenantContextHolder> tenantHolder = mockStatic(
-                TenantContextHolder.class)) {
-                tenantHolder.when(TenantContextHolder::isTenantEnabled).thenReturn(false);
-                MockHttpServletRequest request = this.request("/system/user");
-                MockHttpServletResponse response = new MockHttpServletResponse();
+            MockHttpServletRequest request = this.request("/system/user");
+            MockHttpServletResponse response = new MockHttpServletResponse();
 
-                boolean flag = interceptor.preHandle(request, response, new Object());
+            boolean flag = interceptor.preHandle(request, response, new Object());
 
-                assertFalse(flag);
-                assertEquals(401, response.getStatus());
-                // preHandle 内已写入过一次上下文（getContext），短路后必须清除；若残留，
-                // 第二次读取会命中线程本地（getSession 仅 1 次），清除后为 2 次。
-                UserContextHolder.getContext();
-                stpUtil.verify(StpUtil::getSession, times(2));
-            }
-        }
-    }
-
-    @Test
-    void shouldClearThreadLocalBefore403ShortCircuit() throws Exception {
-        when(accessSessionValidator.getInvalidReason("access-token")).thenReturn(null);
-        try (MockedStatic<SpringUtil> springUtil = mockStatic(SpringUtil.class)) {
-            ResponseStatusFactory factory = this.statusFactory();
-            springUtil.when(() -> SpringUtil.getBean(ResponseStatusFactory.class))
-                .thenReturn(factory);
-            springUtil.when(() -> SpringUtil.getBean(ObjectMapper.class))
-                .thenReturn(new ObjectMapper());
-            try (MockedStatic<TenantContextHolder> tenantHolder = mockStatic(
-                TenantContextHolder.class)) {
-                tenantHolder.when(TenantContextHolder::isTenantEnabled).thenReturn(true);
-                tenantHolder.when(TenantContextHolder::getTenantId).thenReturn(2L);
-                stpUtil.when(() -> StpUtil.getExtra("access-token", "tenantId")).thenReturn(1L);
-                MockHttpServletRequest request = this.request("/system/user");
-                MockHttpServletResponse response = new MockHttpServletResponse();
-
-                boolean flag = interceptor.preHandle(request, response, new Object());
-
-                assertFalse(flag);
-                assertEquals(403, response.getStatus());
-                UserContextHolder.getContext();
-                stpUtil.verify(StpUtil::getSession, times(2));
-            }
+            assertFalse(flag);
+            assertEquals(401, response.getStatus());
+            // preHandle 内已写入过一次上下文（getContext），短路后必须清除；若残留，
+            // 第二次读取会命中线程本地（getSession 仅 1 次），清除后为 2 次。
+            UserContextHolder.getContext();
+            stpUtil.verify(StpUtil::getSession, times(2));
         }
     }
 
@@ -170,19 +138,15 @@ class SaExtensionInterceptorTest {
                 .thenReturn(factory);
             springUtil.when(() -> SpringUtil.getBean(ObjectMapper.class))
                 .thenReturn(new ObjectMapper());
-            try (MockedStatic<TenantContextHolder> tenantHolder = mockStatic(
-                TenantContextHolder.class)) {
-                tenantHolder.when(TenantContextHolder::isTenantEnabled).thenReturn(false);
-                MockHttpServletRequest request = this.request("/system/user");
-                MockHttpServletResponse response = new MockHttpServletResponse();
+            MockHttpServletRequest request = this.request("/system/user");
+            MockHttpServletResponse response = new MockHttpServletResponse();
 
-                boolean flag = interceptor.preHandle(request, response, new Object());
-                interceptor.afterCompletion(request, response, new Object(), null);
+            boolean flag = interceptor.preHandle(request, response, new Object());
+            interceptor.afterCompletion(request, response, new Object(), null);
 
-                assertTrue(flag);
-                UserContextHolder.getContext();
-                stpUtil.verify(StpUtil::getSession, times(2));
-            }
+            assertTrue(flag);
+            UserContextHolder.getContext();
+            stpUtil.verify(StpUtil::getSession, times(2));
         }
     }
 
@@ -196,17 +160,13 @@ class SaExtensionInterceptorTest {
                 .thenReturn(factory);
             springUtil.when(() -> SpringUtil.getBean(ObjectMapper.class))
                 .thenReturn(new ObjectMapper());
-            try (MockedStatic<TenantContextHolder> tenantHolder = mockStatic(
-                TenantContextHolder.class)) {
-                tenantHolder.when(TenantContextHolder::isTenantEnabled).thenReturn(false);
-                MockHttpServletResponse response = new MockHttpServletResponse();
+            MockHttpServletResponse response = new MockHttpServletResponse();
 
-                boolean flag = interceptor.preHandle(this.request("/system/user"), response,
-                    new Object());
+            boolean flag = interceptor.preHandle(this.request("/system/user"), response,
+                new Object());
 
-                assertFalse(flag);
-                assertEquals(401, response.getStatus());
-            }
+            assertFalse(flag);
+            assertEquals(401, response.getStatus());
         }
     }
 
@@ -223,20 +183,16 @@ class SaExtensionInterceptorTest {
                 .thenReturn(factory);
             springUtil.when(() -> SpringUtil.getBean(ObjectMapper.class))
                 .thenReturn(new ObjectMapper());
-            try (MockedStatic<TenantContextHolder> tenantHolder = mockStatic(
-                TenantContextHolder.class)) {
-                tenantHolder.when(TenantContextHolder::isTenantEnabled).thenReturn(false);
-                MockHttpServletResponse response = new MockHttpServletResponse();
+            MockHttpServletResponse response = new MockHttpServletResponse();
 
-                // 密码过期放行的改密路径：即使已闲置也不能拦，否则用户只能重新登录才能改密
-                boolean flag = interceptor.preHandle(this
-                    .request("/user/profile/password"), response, new Object());
+            // 密码过期放行的改密路径：即使已闲置也不能拦，否则用户只能重新登录才能改密
+            boolean flag = interceptor.preHandle(this
+                .request("/user/profile/password"), response, new Object());
 
-                assertTrue(flag);
-                // 短路求值：自助路径不查闲置，但活跃时间仍要记录
-                verify(sessionActivityService, never()).isIdleExpired(any(), anyLong());
-                verify(sessionActivityService).touch(any(), any());
-            }
+            assertTrue(flag);
+            // 短路求值：自助路径不查闲置，但活跃时间仍要记录
+            verify(sessionActivityService, never()).isIdleExpired(any(), anyLong());
+            verify(sessionActivityService).touch(any(), any());
         }
     }
 
@@ -249,18 +205,14 @@ class SaExtensionInterceptorTest {
                 .thenReturn(factory);
             springUtil.when(() -> SpringUtil.getBean(ObjectMapper.class))
                 .thenReturn(new ObjectMapper());
-            try (MockedStatic<TenantContextHolder> tenantHolder = mockStatic(
-                TenantContextHolder.class)) {
-                tenantHolder.when(TenantContextHolder::isTenantEnabled).thenReturn(false);
-                MockHttpServletResponse response = new MockHttpServletResponse();
+            MockHttpServletResponse response = new MockHttpServletResponse();
 
-                boolean flag = interceptor.preHandle(this.request("/user/profile/password"),
-                    response, new Object());
+            boolean flag = interceptor.preHandle(this.request("/user/profile/password"),
+                response, new Object());
 
-                assertTrue(flag);
-                // 未配置闲置失效时直接短路，不做放行路径匹配（setUp 默认策略 idle=0）
-                saRouter.verify(() -> SaRouter.isMatchCurrURI(any(String[].class)), never());
-            }
+            assertTrue(flag);
+            // 未配置闲置失效时直接短路，不做放行路径匹配（setUp 默认策略 idle=0）
+            saRouter.verify(() -> SaRouter.isMatchCurrURI(any(String[].class)), never());
         }
     }
 
@@ -276,18 +228,14 @@ class SaExtensionInterceptorTest {
                 .thenReturn(factory);
             springUtil.when(() -> SpringUtil.getBean(ObjectMapper.class))
                 .thenReturn(new ObjectMapper());
-            try (MockedStatic<TenantContextHolder> tenantHolder = mockStatic(
-                TenantContextHolder.class)) {
-                tenantHolder.when(TenantContextHolder::isTenantEnabled).thenReturn(false);
 
-                boolean flag = interceptor.preHandle(this.request("/system/user"),
-                    new MockHttpServletResponse(), new Object());
+            boolean flag = interceptor.preHandle(this.request("/system/user"),
+                new MockHttpServletResponse(), new Object());
 
-                assertTrue(flag);
-                // 闲置策略与活跃时间都必须按令牌所属客户端取
-                verify(clientPolicyCache).get("client-b");
-                verify(sessionActivityService).touch(any(), eq("client-b"));
-            }
+            assertTrue(flag);
+            // 闲置策略与活跃时间都必须按令牌所属客户端取
+            verify(clientPolicyCache).get("client-b");
+            verify(sessionActivityService).touch(any(), eq("client-b"));
         }
     }
 

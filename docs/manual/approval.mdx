@@ -1,0 +1,46 @@
+---
+title: 审批管理
+description: 配置顺序审批流程、发起申请并处理分配给自己的审批任务。
+---
+
+审批中心提供流程定义、我的申请和我的待办三个页面。菜单由后端按角色授权后动态下发，入口显示在「审批中心」。
+
+## 流程定义
+
+有审批定义管理权限的用户可新增流程，配置唯一编码、名称、分类、说明和表单。流程节点按顺序执行，每个节点指定一个或多个启用用户作为审批人。
+
+| 会签方式 | 流转规则 |
+|:---|:---|
+| 任一人同意 | 当前节点任意一名审批人同意后进入下一节点 |
+| 全部同意 | 当前节点所有审批人均同意后进入下一节点 |
+
+表单可添加文本、多行文本、数字、金额、日期、日期范围、下拉选择和单选字段。字段可配置必填、提示和选项。保存定义后启用，申请人即可选择该流程。
+
+## 发起与跟进
+
+在「我的申请」选择启用的流程，填写标题、业务标识、业务类型和表单内容后发起。列表仅展示当前用户发起的申请；申请仍处于待审批状态时，可由发起人撤销。
+
+打开申请详情可查看提交时的表单、流程节点、审批任务和处理历史。发起时会保存流程和表单快照，后续修改定义不会改变已经发起的申请。
+
+## 处理待办
+
+「我的待办」只显示分配给当前用户的任务，可切换待处理与已处理。审批人查看申请详情后填写处理意见并选择同意或拒绝。同一节点的会签未完成时，流程会停留在该节点；拒绝后申请结束。
+
+| 状态 | 含义 |
+|:---|:---|
+| `PENDING` | 等待审批 |
+| `APPROVED` | 全部节点通过 |
+| `REJECTED` | 审批被拒绝 |
+| `CANCELLED` | 发起人撤销或流程结束时任务被取消 |
+
+## 角色权限
+
+初始化数据为 `super_admin` 和 `sys_admin` 授予审批管理权限；`general` 可读取可发起的流程、查看本人申请和处理分配给自己的待办。其他角色可在「系统管理 -> 角色管理」中分配审批菜单与按钮权限。
+
+## 相关源码
+
+- [审批流程定义](https://github.com/continew-org/continew-admin/blob/dev/continew-plugin/continew-plugin-approval/src/main/java/top/continew/admin/approval/controller/ApprovalDefinitionController.java)
+- [审批申请接口](https://github.com/continew-org/continew-admin/blob/dev/continew-plugin/continew-plugin-approval/src/main/java/top/continew/admin/approval/controller/ApprovalInstanceController.java)
+- [审批任务接口](https://github.com/continew-org/continew-admin/blob/dev/continew-plugin/continew-plugin-approval/src/main/java/top/continew/admin/approval/controller/ApprovalTaskController.java)
+- [后端审批开发指南](/docs/admin/development/backend/approval)
+- [菜单与按钮权限](./system/menu)

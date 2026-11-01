@@ -30,7 +30,6 @@ import top.continew.admin.auth.adapter.RefreshClientPolicyMapper;
 import top.continew.admin.auth.adapter.RefreshSessionPrincipalAdapter;
 import top.continew.admin.auth.model.resp.LoginResp;
 import top.continew.admin.auth.service.AuthTokenService;
-import top.continew.admin.common.api.tenant.TenantApi;
 import top.continew.admin.common.constant.GlobalConstants;
 import top.continew.admin.common.context.RoleContext;
 import top.continew.admin.common.context.UserContext;
@@ -55,19 +54,14 @@ import top.continew.starter.auth.refresh.token.service.RefreshTokenService;
 import top.continew.starter.auth.refresh.token.service.RefreshTokenService.LoginAttempt;
 import top.continew.starter.core.exception.BusinessException;
 import top.continew.starter.core.util.validation.CheckUtils;
-import top.continew.starter.extension.tenant.context.TenantContextHolder;
-import top.continew.starter.extension.tenant.util.TenantUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 
 /**
  * 统一 Access Token 签发实现。
@@ -91,45 +85,21 @@ public class AuthTokenServiceImpl implements AuthTokenService {
     private final UserService userService;
     private final ClientService clientService;
     private final RefreshTokenService refreshTokenService;
-    private final TenantApi tenantApi;
     private final ThreadPoolTaskExecutor threadPoolTaskExecutor;
 
     @Override
-    public LoginResp issue(UserDO user, ClientResp client, Long tenantId,
-        HttpServletRequest request, HttpServletResponse response) {
-        return this.issueInternal(user, client, tenantId, request, response, true);
+    public LoginResp issue(UserDO user, ClientResp client, HttpServletRequest request,
+        HttpServletResponse response) {
+        return this.issueNewSession(user, client, request, response);
     }
 
     @Override
-    public LoginResp issueAccessToken(UserDO user, ClientResp client, Long tenantId,
-        RefreshSession refreshSession, HttpServletRequest request, HttpServletResponse response) {
+    public LoginResp issueAccessToken(UserDO user, ClientResp client, RefreshSession refreshSession,
+        HttpServletRequest request, HttpServletResponse response) {
         // 刷新场景只重新签发短期 Access Token，Refresh Session 的轮换由专门服务完成。
         Objects.requireNonNull(refreshSession, "刷新场景必须提供 Refresh Session");
-        return this.issueInternal(user, client, tenantId, request, response, false,
-            refreshSession);
-    }
-
-    private LoginResp issueInternal(UserDO user, ClientResp client, Long tenantId,
-        HttpServletRequest request, HttpServletResponse response, boolean issueRefreshToken) {
-        return this.issueInternal(user, client, tenantId, request, response, issueRefreshToken,
-            null);
-    }
-
-    private LoginResp issueInternal(UserDO user, ClientResp client, Long tenantId,
-        HttpServletRequest request, HttpServletResponse response, boolean issueRefreshToken,
-        RefreshSession refreshSession) {
-        if (issueRefreshToken) {
-            return this.issueNewSession(user, client, tenantId, request, response);
-        }
-        AtomicReference<LoginResp> result = new AtomicReference<>();
-        // 刷新时租户上下文不会由前端重新提交，必须以 Refresh Session 中的 tenantId 为准。
-        TenantUtils.execute(tenantId,
-            () -> {
-                this.checkUserStatus(user, true);
-                result.set(this.issueInTenant(user, client, tenantId, request, response,
-                    refreshSession, null));
-            });
-        return result.get();
+        this.checkUserStatus(user, true);
+        return this.issueSession(user, client, request, response, refreshSession, null);
     }
 
     /**
@@ -137,37 +107,41 @@ public class AuthTokenServiceImpl implements AuthTokenService {
      *
      * @param authenticatedUser   认证用户信息
      * @param authenticatedClient 认证客户端信息
-     * @param tenantId            租户 ID
      * @param request             请求对象
      * @param response            响应对象
      * @return 登录响应参数
      */
     private LoginResp issueNewSession(UserDO authenticatedUser, ClientResp authenticatedClient,
-        Long tenantId, HttpServletRequest request, HttpServletResponse response) {
+        HttpServletRequest request, HttpServletResponse response) {
         return refreshTokenService.executeLoginPolicy(authenticatedUser.getId(),
-            authenticatedClient.getClientId(), tenantId, securityVersion -> {
+            authenticatedClient.getClientId(), null, securityVersion -> {
                 LoginState loginState = this.reloadLoginState(authenticatedUser,
-                    authenticatedClient, tenantId);
-                // 登录早期的租户校验可能早于认证过程很久；在租户锁内再次读取数据库，保证
-                // 租户禁用、过期或套餐变更与新 Session 创建严格串行。
-                tenantApi.checkStatus(tenantId);
+                    authenticatedClient);
                 String currentAccessToken = StpUtil.getTokenValue();
                 String currentRefreshToken = refreshTokenService.resolve(null, request);
                 return new LoginAttempt<>(loginState.user().getId(), RefreshClientPolicyMapper
-                    .from(loginState.client()),
-                    currentAccessToken, currentRefreshToken,
-                    () -> this.executeInTenant(tenantId,
-                        () -> this.issueInTenant(loginState.user(), loginState.client(), tenantId,
-                            request, response, null, securityVersion)));
+                    .from(loginState.client()), currentAccessToken, currentRefreshToken,
+                    () -> this.issueSession(loginState.user(), loginState.client(), request,
+                        response, null, securityVersion));
             });
     }
 
-    private LoginResp issueInTenant(UserDO user, ClientResp client, Long tenantId,
-        HttpServletRequest request, HttpServletResponse response, RefreshSession refreshSession,
+    /**
+     * 签发 Access Token，并在新登录时创建 Refresh Session
+     *
+     * @param user           用户信息
+     * @param client         客户端信息
+     * @param request        HTTP 请求
+     * @param response       HTTP 响应
+     * @param refreshSession 已有刷新会话；新登录时为空
+     * @param securityVersion 登录锁内读取的安全版本
+     * @return 登录响应
+     */
+    private LoginResp issueSession(UserDO user, ClientResp client, HttpServletRequest request,
+        HttpServletResponse response, RefreshSession refreshSession,
         AuthSecurityVersion securityVersion) {
-        // 新登录需要创建 Refresh Session；刷新场景传入既有会话，不得再新建
         boolean issueRefreshToken = refreshSession == null;
-        UserContext userContext = this.buildUserContext(user, tenantId);
+        UserContext userContext = this.buildUserContext(user);
 
         String sessionId = issueRefreshToken ? refreshTokenService.newSessionId()
             : refreshSession.getSessionId();
@@ -190,12 +164,10 @@ public class AuthTokenServiceImpl implements AuthTokenService {
 
         userContext.setClientType(client.getClientType());
         userContext.setClientId(client.getClientId());
-        userContext.setTenantId(tenantId);
 
         String accessToken = null;
         try {
-            // 用户上下文写入 SaSession，后续请求可直接读取权限、角色和租户信息。
-            UserExtraContext extraContext = new UserExtraContext(request, tenantId);
+            UserExtraContext extraContext = new UserExtraContext(request);
             extraContext.setClientId(client.getClientId());
             // SaLoginParameter#setExtraData 会整体替换 extra 数据。必须在同一 Map 中
             // 写入会话声明，否则 sid 会被用户额外上下文覆盖，后续接口无法关联到
@@ -212,7 +184,6 @@ public class AuthTokenServiceImpl implements AuthTokenService {
                 .accessToken(accessToken)
                 .tokenType("Bearer")
                 .expiresIn(accessTokenTimeout)
-                .tenantId(TenantContextHolder.isTenantEnabled() ? tenantId : null)
                 .build();
 
             // 新登录创建 Refresh Session。浏览器明文只进入 HttpOnly Cookie；BODY 模式
@@ -246,23 +217,15 @@ public class AuthTokenServiceImpl implements AuthTokenService {
     /**
      * 构建刷新时也必须使用的最新权限上下文，避免角色变更后继续沿用旧权限
      *
-     * @param user     用户信息
-     * @param tenantId 租户 ID
+     * @param user 用户信息
      * @return 用户上下文
      */
-    private UserContext buildUserContext(UserDO user, Long tenantId) {
+    private UserContext buildUserContext(UserDO user) {
         Long userId = user.getId();
-        CompletableFuture<Set<String>> permissionFuture = CompletableFuture.supplyAsync(() -> {
-            Set<String> permissions = new HashSet<>();
-            TenantUtils.execute(tenantId,
-                () -> permissions.addAll(roleService.listPermissionByUserId(userId)));
-            return permissions;
-        }, threadPoolTaskExecutor);
-        CompletableFuture<Set<RoleContext>> roleFuture = CompletableFuture.supplyAsync(() -> {
-            Set<RoleContext> roles = new HashSet<>();
-            TenantUtils.execute(tenantId, () -> roles.addAll(roleService.listByUserId(userId)));
-            return roles;
-        }, threadPoolTaskExecutor);
+        CompletableFuture<Set<String>> permissionFuture = CompletableFuture.supplyAsync(
+            () -> roleService.listPermissionByUserId(userId), threadPoolTaskExecutor);
+        CompletableFuture<Set<RoleContext>> roleFuture = CompletableFuture.supplyAsync(
+            () -> roleService.listByUserId(userId), threadPoolTaskExecutor);
         CompletableFuture<Integer> passwordExpirationDaysFuture = CompletableFuture.supplyAsync(
             () -> optionService.getValueByCode2Int(PASSWORD_EXPIRATION_DAYS.name()),
             threadPoolTaskExecutor);
@@ -298,8 +261,8 @@ public class AuthTokenServiceImpl implements AuthTokenService {
             "此账号所属部门已被禁用，如有疑问，请联系管理员", refreshRequest);
     }
 
-    private LoginState reloadLoginState(UserDO authenticatedUser, ClientResp authenticatedClient,
-        Long tenantId) {
+    private LoginState reloadLoginState(UserDO authenticatedUser,
+        ClientResp authenticatedClient) {
         ClientResp currentClient = clientService.getByClientId(authenticatedClient.getClientId());
         if (currentClient == null) {
             throw new BusinessException("客户端不存在");
@@ -310,16 +273,12 @@ public class AuthTokenServiceImpl implements AuthTokenService {
             throw new BusinessException("客户端认证配置已变更，请重新登录");
         }
 
-        AtomicReference<UserDO> currentUser = new AtomicReference<>();
-        TenantUtils.execute(tenantId, () -> {
-            currentUser.set(userService.getById(authenticatedUser.getId()));
-            this.checkUserStatus(currentUser.get(), false);
-        });
-        if (!Objects.equals(authenticatedUser.getPwdResetTime(),
-            currentUser.get().getPwdResetTime())) {
+        UserDO currentUser = userService.getById(authenticatedUser.getId());
+        this.checkUserStatus(currentUser, false);
+        if (!Objects.equals(authenticatedUser.getPwdResetTime(), currentUser.getPwdResetTime())) {
             throw new BusinessException("账号凭证已变更，请重新登录");
         }
-        return new LoginState(currentUser.get(), currentClient);
+        return new LoginState(currentUser, currentClient);
     }
 
     private boolean isSameSecurityPolicy(ClientResp expected, ClientResp actual) {
@@ -361,12 +320,6 @@ public class AuthTokenServiceImpl implements AuthTokenService {
             throw RefreshTokenException.unauthorized(message);
         }
         throw new BusinessException(message);
-    }
-
-    private <T> T executeInTenant(Long tenantId, Supplier<T> action) {
-        AtomicReference<T> result = new AtomicReference<>();
-        TenantUtils.execute(tenantId, () -> result.set(action.get()));
-        return result.get();
     }
 
     private record LoginState(UserDO user, ClientResp client) {

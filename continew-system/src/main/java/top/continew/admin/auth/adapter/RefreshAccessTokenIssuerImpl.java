@@ -24,7 +24,6 @@ import org.springframework.stereotype.Component;
 import top.continew.admin.auth.model.resp.LoginResp;
 import top.continew.admin.auth.service.AuthTokenService;
 import top.continew.admin.auth.service.SessionActivityService;
-import top.continew.admin.common.api.tenant.TenantApi;
 import top.continew.admin.common.enums.DisEnableStatusEnum;
 import top.continew.admin.system.model.entity.user.UserDO;
 import top.continew.admin.system.model.resp.ClientResp;
@@ -34,12 +33,9 @@ import top.continew.starter.auth.refresh.token.exception.RefreshTokenException;
 import top.continew.starter.auth.refresh.token.model.IssuedAccessToken;
 import top.continew.starter.auth.refresh.token.model.RefreshSession;
 import top.continew.starter.auth.refresh.token.service.RefreshAccessTokenIssuer;
-import top.continew.starter.core.exception.BusinessException;
-import top.continew.starter.extension.tenant.util.TenantUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * system 对刷新主体状态和 Access Token 签发的适配实现
@@ -54,7 +50,6 @@ public class RefreshAccessTokenIssuerImpl implements RefreshAccessTokenIssuer {
 
     private final AuthTokenService authTokenService;
     private final ClientService clientService;
-    private final TenantApi tenantApi;
     private final UserService userService;
     private final SessionActivityService sessionActivityService;
 
@@ -66,21 +61,13 @@ public class RefreshAccessTokenIssuerImpl implements RefreshAccessTokenIssuer {
             throw RefreshTokenException.unauthorized("登录状态已失效，请重新登录");
         }
         this.checkIdleTimeout(session, client);
-        try {
-            tenantApi.checkStatus(session.getTenantId());
-        } catch (BusinessException e) {
-            throw RefreshTokenException.unauthorized(e.getMessage());
-        }
-        AtomicReference<UserDO> userReference = new AtomicReference<>();
-        TenantUtils.execute(session.getTenantId(),
-            () -> userReference.set(userService.getById(session.getUserId())));
-        if (userReference.get() == null || StrUtil.isBlank(userReference.get().getUsername())) {
+        UserDO user = userService.getById(session.getUserId());
+        if (user == null || StrUtil.isBlank(user.getUsername())) {
             throw RefreshTokenException.unauthorized("登录状态已失效，请重新登录");
         }
-        LoginResp loginResp = authTokenService.issueAccessToken(userReference.get(), client,
-            session.getTenantId(), session, request, response);
-        return new IssuedAccessToken(loginResp.getAccessToken(), loginResp.getExpiresIn(),
-            loginResp.getTenantId());
+        LoginResp loginResp = authTokenService.issueAccessToken(user, client, session, request,
+            response);
+        return new IssuedAccessToken(loginResp.getAccessToken(), loginResp.getExpiresIn(), null);
     }
 
     /**

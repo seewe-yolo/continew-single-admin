@@ -1,6 +1,6 @@
 ---
 title: 常见问题
-description: 按症状组织后端二次开发的常见问题，覆盖 CRUD、权限、租户、数据权限、Excel 与接口文档六类。
+description: 按症状组织后端二次开发的常见问题，覆盖 CRUD、权限、数据权限、Excel 与接口文档五类。
 ---
 
 本文收集后端二次开发阶段的高频问题，按「症状 → 原因 → 处理」组织。环境与启动类问题见 [常见问题](/docs/admin/reference/faq)。
@@ -76,31 +76,11 @@ Refresh Session 过期、被撤销，或 Cookie 没带。浏览器端 Refresh To
 
 排查顺序与 [常见问题](/docs/admin/reference/faq) 的「刷新页面掉线」一致：先看 `cookie-path` 是否覆盖代理前缀，再看 `Set-Cookie` 是否到达浏览器，最后查 Redis 中会话是否还存在。
 
-## 多租户
-
-### 新业务表查询返回全部租户的数据
-
-实体继承了 `BaseDO` 而不是 `TenantBaseDO`，且表没加 `tenant_id` 列。租户拦截器只对包含 `tenant_id` 列的实体拼条件，缺列的表静默跳过，表现为不过滤。
-
-按 [多租户接入](./tenant) 补齐 `tenant_id` 列与索引，实体改继承 `TenantBaseDO`；存量数据回填 `tenant_id = 0` 后再观察。
-
-### 新业务表一个租户都查不到数据
-
-表被加进了 `continew-starter.tenant.ignore-tables`，或实体没有 `tenantId` 字段导致插入时没回填。白名单表不拼条件、不回填，行为与预期相反。
-
-先从 `ignore-tables` 移除该表；确认实体继承 `TenantBaseDO`；已插入的行手动核对 `tenant_id` 值。
-
-### 登录后接口全部走默认租户
-
-前端没传 `X-Tenant-Id` 或传了 `X-Tenant-Code` 但租户不存在。`DefaultTenantProvider` 解析不到头值时回落默认租户 `0`，不报错。
-
-浏览器 Network 面板确认请求头；用租户编码登录时确认 `tenant.code` 与库中一致，`getIdByCode` 找不到会直接抛「编码为 [x] 的租户不存在」。
-
 ## 数据权限
 
 ### 配了数据范围但查询结果没变化
 
-三种高频原因。当前用户是超级管理员或租户管理员（`isFilter` 返回 `false` 直接短路）；Mapper 继承的是普通 `BaseMapper` 而不是 `DataPermissionMapper`；自定义查询方法忘了加 `@DataPermission`。
+三种高频原因。当前用户是超级管理员（`isFilter` 返回 `false` 直接短路）；Mapper 继承的是普通 `BaseMapper` 而不是 `DataPermissionMapper`；自定义查询方法忘了加 `@DataPermission`。
 
 先确认用户角色类型，再检查 Mapper 继承链与自定义方法的注解。注解缺失不会报错，过滤静默不生效。
 
@@ -142,7 +122,7 @@ Refresh Session 过期、被撤销，或 Cookie 没带。浏览器端 Refresh To
 
 没注册 `GroupedOpenApi` Bean。`all` 分组虽然能覆盖全部路径，但模块独立分组需要按路径前缀显式声明。
 
-在该模块的配置类中加一个 `GroupedOpenApi.builder().group(...).pathsToMatch("/<前缀>/**").build()` 的 Bean，`TenantConfiguration.tenantModuleApi` 是参照。
+在该模块的配置类中注册 `GroupedOpenApi` Bean，按模块 API 前缀筛选路径。例如，业务模块可使用 `/biz/**`，避免所有接口都落入 `all` 分组。
 
 ### CRUD 接口文档里看不到权限码
 
@@ -155,5 +135,4 @@ Refresh Session 过期、被撤销，或 Cookie 没带。浏览器端 Refresh To
 ## 相关源码
 
 - [BaseController（CRUD 权限校验）](https://github.com/continew-org/continew-admin/blob/dev/continew-common/src/main/java/top/continew/admin/common/base/controller/BaseController.java)
-- [DefaultTenantProvider（租户解析）](https://github.com/continew-org/continew-admin/blob/dev/continew-plugin/continew-plugin-tenant/src/main/java/top/continew/admin/tenant/config/DefaultTenantProvider.java)
 - [DefaultDataPermissionUserDataProvider（数据权限过滤开关）](https://github.com/continew-org/continew-admin/blob/dev/continew-common/src/main/java/top/continew/admin/common/config/mybatis/DefaultDataPermissionUserDataProvider.java)

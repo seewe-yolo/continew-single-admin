@@ -69,11 +69,10 @@ dev 环境的必需变量都有默认值，不注入也能启动。prod 环境�
 | `continew-starter.web.response` | `default-success-code: 0`、`default-error-code: 1`，响应类 `top.continew.starter.web.model.R` |
 | `continew-starter.log` | 记录请求/响应头、请求/响应体、IP、浏览器、OS 等 |
 | `continew-starter.trace` | 链路头 `X-Trace-Id`，日志经 TLog 输出 |
-| `continew-starter.tenant` | `isolation-level: LINE`，租户头 `X-Tenant-Id`，默认租户 `0` |
 | `continew-starter.rate-limiter` | 开启，key 前缀 `RateLimiter` |
 | `sa-token` | token 名 `Authorization`，`jwt-secret-key: ${ACCESS_TOKEN_JWT_SECRET}`，持久层 `dao.type: REDIS` |
 | `mybatis-plus` | `id-type: ASSIGN_ID`，逻辑删除字段 `deleted`（未删除 `0`，已删除取 `id`），ID 生成器 `COSID` |
-| `cosid` | 雪花算法，epoch `1577203200000`，开启时钟回拨同步；租户编码生成器前缀 `T` |
+| `cosid` | 雪花算法，epoch `1577203200000`，开启时钟回拨同步 |
 | `continew-starter.refresh-token` | `cookie-name: refresh_token`、`cookie-path: /`、`cookie-secure: false`、`cookie-same-site: Lax` |
 | `auth.password.excludes` | 密码过期拦截与闲置失效判定共用的自助通道路径：`/auth/user/route`、`/auth/user/info`、`/auth/logout`、`/user/profile/password`；增删路径时两类判定同时生效 |
 | `auth.online.presence-window` | 在线用户页面的「在线」判定窗口，默认 `5m`；只影响展示与筛选，不参与会话失效 |

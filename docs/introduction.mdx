@@ -8,13 +8,13 @@ icon: CircleQuestionMark
 
 **AI 编程纪元已经开启，基于 ContiNew 项目开发，让 AI 助手“学习”更优雅的代码规范，“写出”更优质的代码。**
 
-ContiNew Admin（Continue New Admin），页面现代美观，且专注设计与代码细节的 **高质量多租户中后台** 管理系统框架。开箱即用，持续迭代优化，持续提供舒适的开发体验。
+ContiNew Admin（Continue New Admin），页面现代美观，且专注设计与代码细节的 **高质量单租户中后台** 管理系统框架。开箱即用，持续迭代优化，持续提供舒适的开发体验。
 
 我们始终坚信好的产品必然是反复打磨出来的，而在工作中我们受限于客户需求、开发周期等因素，无法深度打磨、重构我们的代码，这也是架构腐烂的根源。所以，我们希望能在业余时间，通过开源社区的力量来打磨出一个好的产品，一个好的实践，一个好的生态。
 
 我们的愿景在于，当你将 ContiNew 系列项目应用到工作场景时，不仅仅是得到效率的提高，更可以得到舒适的开发体验，让更多开发者的编程工作多一点“甜”。
 
-工程形态上，后端为 Maven 多模块工程（依赖自上而下为 `continew-server` → `continew-system` → `continew-common`），基于 Spring Boot 3（Java 17），启动类为 `top.continew.admin.ContiNewAdminApplication`，dev 环境端口 8000；前端为独立仓库 [continew-admin-ui](https://github.com/continew-org/continew-admin-ui)，基于 Vue 3、Arco Design、TypeScript 与 Vite。框架的通用基础能力（CRUD 套件、认证、租户、数据权限、缓存、日志等）抽离在 [ContiNew Starter](/docs/starter) 中，以 BOM 方式引入（2.17.0），Admin 在其上做业务实现与工程级扩展。
+工程形态上，后端为 Maven 多模块工程（依赖自上而下为 `continew-server` → `continew-system` → `continew-common`），基于 Spring Boot 3（Java 17），启动类为 `top.continew.admin.ContiNewAdminApplication`，dev 环境端口 8000；前端为独立仓库 [continew-admin-ui](https://github.com/continew-org/continew-admin-ui)，基于 Vue 3、Arco Design、TypeScript 与 Vite。框架的通用基础能力（CRUD 套件、认证、数据权限、缓存、日志等）抽离在 [ContiNew Starter](/docs/starter) 中，以 BOM 方式引入（2.17.0），Admin 在其上做业务实现与工程级扩展。
 
 ## 项目起源
 
@@ -37,11 +37,9 @@ ContiNew Admin（Continue New Admin），页面现代美观，且专注设计与
 
 中后台项目的重复工作集中在权限模型、认证会话、文件存储、日志审计、任务调度这些横切能力上。ContiNew Admin 给出一套已经组合好且经过生产验证的默认实现，让新项目的起点是业务代码，而不是脚手架代码。
 
-已经内置并开箱可用的功能包括用户、角色、菜单、部门、字典、参数配置、通知公告、文件管理（回收站与分片上传）、存储配置、短信配置、客户端配置、在线用户、登录与操作日志、多租户与租户套餐、AK/SK 能力开放、任务调度、代码生成。功能清单与使用方式见[功能手册](/docs/admin/manual/system)。
+已经内置并开箱可用的功能包括用户、角色、菜单、部门、字典、参数配置、通知公告、文件管理（回收站与分片上传）、存储配置、短信配置、客户端配置、在线用户、登录与操作日志、AK/SK 能力开放、任务调度、代码生成。功能清单与使用方式见[功能手册](/docs/admin/manual/system)。
 
 ## 核心特性
-
-**多租户行级隔离**：基于 ContiNew Starter 的 `continew-starter-extension-tenant-mp`（MyBatis-Plus 行级隔离），租户 ID 经 `X-Tenant-Id` 请求头传递，默认租户 ID 为 0。租户管理、套餐管理由 `continew-plugin-tenant` 插件提供。
 
 **认证与多方式登录**：基于 Sa-Token（1.45.0）+ JWT，Token 名 `Authorization`。内置账号密码、邮箱验证码、手机验证码、JustAuth 第三方登录四种处理器。自 4.2.0 起引入 `continew-starter-auth-refresh-token`，采用 Access Token（内存持有）+ Refresh Token（HttpOnly Cookie）双令牌轮换。Token 有效期在「客户端配置」页面按端动态管理。
 
@@ -49,7 +47,7 @@ ContiNew Admin（Continue New Admin），页面现代美观，且专注设计与
 
 **CRUD 套件**：Controller 标注 `@CrudRequestMapping` 并继承 `BaseController`，`BaseController.preHandle` 按 API 类型自动生成并校验权限码。例如 `POST /system/user` 自动要求 `system:user:create` 权限，无需手写鉴权注解。该套件由 ContiNew Starter 提供，完整说明见 [CRUD 套件文档](/docs/starter/modules/extension/crud)。
 
-**可插拔插件**：能力开放（AK/SK 签名）、多租户、任务调度（Snail Job）、代码生成器四个功能以 `continew-plugin` 下的独立模块交付，可按需引入或裁剪。任务调度默认关闭（`snail-job.enabled: false`），生产配置默认开启。
+**可插拔插件**：能力开放（AK/SK 签名）、任务调度（Snail Job）、代码生成器三个功能以 `continew-plugin` 下的独立模块交付，可按需引入或裁剪。任务调度默认关闭（`snail-job.enabled: false`），生产配置默认开启。
 
 **代码生成器**：连接数据库表生成后端 Controller/Service/Mapper/Entity 等 11 个模板与前端列表页、新增弹窗、详情抽屉等 4 个模板，产物与现有分层约定一致，生成后即可参与 CRUD 权限体系。
 

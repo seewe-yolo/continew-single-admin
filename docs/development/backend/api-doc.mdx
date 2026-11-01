@@ -29,13 +29,13 @@ nextdoc4j:
 
 ## 接口分组
 
-文档左侧的分组由 `GroupedOpenApi` Bean 声明。`GlobalSpringDocConfiguration` 注册了两个全局组：`all`（`/**`，全部接口）与 `common`（`/captcha/**`、`/dashboard/**`，通用接口）。各业务模块在自己的配置类里按路径前缀注册分组，租户插件的写法是参照。
+文档左侧的分组由 `GroupedOpenApi` Bean 声明。`GlobalSpringDocConfiguration` 注册了两个全局组：`all`（`/**`，全部接口）与 `common`（`/captcha/**`、`/dashboard/**`，通用接口）。各业务模块在自己的配置类里按路径前缀注册分组。
 
 ```java
 @Bean
-public GroupedOpenApi tenantModuleApi() {
-    return GroupedOpenApi.builder().group("tenant").displayName("租户管理")
-        .pathsToMatch("/tenant/**").build();
+public GroupedOpenApi businessModuleApi() {
+    return GroupedOpenApi.builder().group("business").displayName("业务管理")
+        .pathsToMatch("/biz/**").build();
 }
 ```
 
@@ -67,4 +67,3 @@ Controller 层的文档注解沿用 swagger-annotations（jakarta 版）。`@Tag
 - [NextDoc4jCustomPermissionDisplay（CRUD 权限码展示）](https://github.com/continew-org/continew-admin/blob/dev/continew-common/src/main/java/top/continew/admin/common/config/doc/NextDoc4jCustomPermissionDisplay.java)
 - [NextDoc4jCustomPathFiltering（放行路径同步）](https://github.com/continew-org/continew-admin/blob/dev/continew-common/src/main/java/top/continew/admin/common/config/doc/NextDoc4jCustomPathFiltering.java)
 - [GlobalSpringDocResponseOperationCustomizer（R 包装改写）](https://github.com/continew-org/continew-admin/blob/dev/continew-common/src/main/java/top/continew/admin/common/config/doc/GlobalSpringDocResponseOperationCustomizer.java)
-- [TenantConfiguration（模块分组示例）](https://github.com/continew-org/continew-admin/blob/dev/continew-plugin/continew-plugin-tenant/src/main/java/top/continew/admin/tenant/config/TenantConfiguration.java)

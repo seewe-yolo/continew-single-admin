@@ -35,7 +35,6 @@ import top.continew.starter.auth.refresh.token.exception.RefreshTokenException;
 import top.continew.starter.auth.refresh.token.model.RefreshIssueResult;
 import top.continew.starter.auth.refresh.token.service.RefreshAccessTokenIssuer;
 import top.continew.starter.auth.refresh.token.service.RefreshTokenService;
-import top.continew.starter.extension.tenant.annotation.TenantIgnore;
 import top.continew.starter.log.annotation.Log;
 import top.continew.starter.log.enums.Include;
 
@@ -70,7 +69,6 @@ public class SessionController {
      * @return 登录响应参数
      */
     @SaIgnore
-    @TenantIgnore
     @Operation(summary = "刷新令牌", description = "使用 Refresh Token 轮换 Access Token")
     @Log(excludes = {Include.REQUEST_HEADERS, Include.REQUEST_BODY, Include.RESPONSE_HEADERS,
         Include.RESPONSE_BODY})
@@ -85,7 +83,7 @@ public class SessionController {
         return LoginResp.builder().accessToken(result.getAccessToken())
             .tokenType(result.getTokenType()).expiresIn(result.getExpiresIn())
             .refreshExpiresIn(result.getRefreshExpiresIn()).refreshToken(result.getRefreshToken())
-            .tenantId(result.getTenantId()).build();
+            .build();
     }
 
     /**
@@ -97,7 +95,6 @@ public class SessionController {
      * @return 被注销会话的登录用户 ID
      */
     @SaIgnore
-    @TenantIgnore
     @Operation(summary = "登出", description = "注销用户的当前登录")
     @Log(excludes = {Include.REQUEST_HEADERS, Include.REQUEST_BODY, Include.RESPONSE_HEADERS})
     @Parameter(name = "Authorization", description = "令牌", required = true,

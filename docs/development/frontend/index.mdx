@@ -35,7 +35,7 @@ pnpm preview        # 预览构建产物（5050 端口）
 
 | 目录 | 职责 |
 |:-----|:-----|
-| `apis/` | 接口定义，按后端模块分文件（`system/`、`auth/`、`tenant/` 等） |
+| `apis/` | 接口定义，按后端模块分文件（`system/`、`auth/`、`monitor/` 等） |
 | `components/` | 全局组件，Gi 组件库与通用业务组件 |
 | `config/setting.ts` | 应用默认配置（主题、布局、页签） |
 | `directives/` | 自定义指令（`v-permission`、`v-role`） |
@@ -43,7 +43,7 @@ pnpm preview        # 预览构建产物（5050 端口）
 | `hooks/` | 组合式函数（`useTable`、`useDict`、`useDownload` 等） |
 | `layout/` | 布局组件（4 套布局 + 页签、菜单、头部） |
 | `router/` | 路由定义与全局守卫 |
-| `stores/` | Pinia 仓库（app、user、route、tabs、dict、tenant） |
+| `stores/` | Pinia 仓库（app、user、route、tabs、dict） |
 | `utils/` | 工具函数（`http.ts`、`has.ts` 等） |
 | `views/` | 页面，目录结构与动态路由的 `component` 字段对应 |
 
@@ -73,7 +73,7 @@ pnpm preview        # 预览构建产物（5050 端口）
 ## 本组内容
 
 <Cards>
-  <Card title="HTTP 请求" description="axios 封装、401 刷新重试、租户请求头注入" href="/docs/admin/development/frontend/request" />
+  <Card title="HTTP 请求" description="axios 封装、401 刷新重试、Authorization 注入" href="/docs/admin/development/frontend/request" />
   <Card title="路由与页签" description="静态路由与动态路由注册、全局守卫、页签缓存" href="/docs/admin/development/frontend/route" />
   <Card title="权限控制" description="v-permission / v-role 指令与 hasPerm 编程式判断" href="/docs/admin/development/frontend/permission" />
   <Card title="字典使用" description="字典数据在前后端的加载、缓存与渲染" href="/docs/admin/development/frontend/dict" />

@@ -9,7 +9,7 @@ description: 说明 ContiNew Admin 的 Sa-Token + JWT 认证、Refresh Token 双
 
 ### Access Token
 
-登录成功后 `AuthTokenService.issue` 调用 `StpUtil.login` 签发 Access Token，JWT 密钥来自环境变量 `ACCESS_TOKEN_JWT_SECRET`（配置键 `sa-token.jwt-secret-key`），令牌名（即请求头名）为 `Authorization`，前端按 `Bearer <token>` 携带。用户上下文（权限、角色、部门、租户）随 `SaLoginParameter.setExtraData` 写入 SaSession，后续请求经 `UserContextHolder.getContext()` 直接读取，不再查库。
+登录成功后 `AuthTokenService.issue` 调用 `StpUtil.login` 签发 Access Token，JWT 密钥来自环境变量 `ACCESS_TOKEN_JWT_SECRET`（配置键 `sa-token.jwt-secret-key`），令牌名（即请求头名）为 `Authorization`，前端按 `Bearer <token>` 携带。用户上下文（权限、角色、部门）随 `SaLoginParameter.setExtraData` 写入 SaSession，后续请求经 `UserContextHolder.getContext()` 直接读取，不再查库。
 
 有效期与活跃频率不在配置文件写死。`sa-token.timeout`、`active-timeout`、并发登录数量等策略改由「系统管理 → 系统配置 → 客户端配置」页面按客户端动态管理（存 `sys_client` 表），登录时 `SaLoginParameter` 从客户端配置逐值设置。同一账号可以同时持有 Web、App 等多个不同客户端的会话，各自的过期策略互不影响。
 
@@ -61,7 +61,7 @@ Refresh Token 的密钥来自独立环境变量 `REFRESH_TOKEN_SECRET`，配置�
 </Step>
 <Step>
 
-`login` 方法内完成认证后调用 `super.authenticate(user, client, request, response)`，令牌签发、租户上下文、Refresh Session 创建全部由基类收口，处理器不直接碰 Sa-Token API。
+`login` 方法内完成认证后调用 `super.authenticate(user, client, request, response)`，令牌签发、用户上下文与 Refresh Session 创建全部由基类收口，处理器不直接碰 Sa-Token API。
 
 </Step>
 <Step>

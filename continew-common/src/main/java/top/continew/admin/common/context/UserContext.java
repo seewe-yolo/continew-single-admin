@@ -17,10 +17,8 @@
 package top.continew.admin.common.context;
 
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.extra.spring.SpringUtil;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import top.continew.admin.common.config.TenantExtensionProperties;
 import top.continew.admin.common.constant.GlobalConstants;
 import top.continew.admin.common.enums.RoleCodeEnum;
 import top.continew.starter.core.util.CollUtils;
@@ -109,11 +107,6 @@ public class UserContext implements Serializable {
      */
     private String clientId;
 
-    /**
-     * 租户 ID
-     */
-    private Long tenantId;
-
     public UserContext(Set<String> permissions, Set<RoleContext> roles,
         Integer passwordExpirationDays) {
         this.permissions = permissions;
@@ -191,18 +184,4 @@ public class UserContext implements Serializable {
         return roleCodes.contains(RoleCodeEnum.SUPER_ADMIN.getCode());
     }
 
-    /**
-     * 是否为租户管理员
-     *
-     * @return true：是；false：否
-     */
-    public boolean isTenantAdmin() {
-        if (CollUtil.isEmpty(roleCodes)) {
-            return false;
-        }
-        TenantExtensionProperties tenantExtensionProperties =
-            SpringUtil.getBean(TenantExtensionProperties.class);
-        return !tenantExtensionProperties.isDefaultTenant()
-            && roleCodes.contains(RoleCodeEnum.TENANT_ADMIN.getCode());
-    }
 }

@@ -130,7 +130,7 @@ git checkout -b feat/your-feature upstream/dev
 ```
 
 - **类型（type）**：说明变更性质。`feat` 表示新增功能，`fix` 表示 Bug 修复；其余常用类型：`docs`（文档）、`refactor`（重构）、`perf`（性能优化）、`test`（测试）、`style`（格式调整，不影响功能）、`build`（构建或依赖变更）、`ci`（CI 配置或脚本）、`chore`（其他杂项）、`revert`（回退提交）；
-- **作用域（scope）**：可选，表示变更影响的模块。可取值：`common` `system` `server` `plugin` `extension` `auth` `open` `tenant` `schedule` `generator` `docker`；
+- **作用域（scope）**：可选，表示变更影响的模块。可取值：`common` `system` `server` `plugin` `extension` `auth` `open` `schedule` `generator` `docker`；
 - **描述（description）**：简短说明本次变更；
 - **破坏性变更（breaking change）**：在类型或作用域后追加 `!`（如 `feat!:`），或在脚注中以 `BREAKING CHANGE: <说明>` 标注（对应主版本）。
 
@@ -138,7 +138,7 @@ git checkout -b feat/your-feature upstream/dev
 
 ```
 feat(system): 用户管理支持批量导入
-fix(tenant): 修复创建租户接口未加事务导致残留孤儿租户
+fix(auth): 修复刷新令牌轮换异常
 refactor!: 移除已废弃的 XXX 配置项
 ```
 

@@ -14,7 +14,7 @@ description: 讲解前端路由的静态与动态注册机制、全局守卫的�
 | `constantRoutes` | `/redirect`（重定向中转）、`/:pathMatch(.*)*`（404）、`/403` |
 | `systemRoutes` | `/login`、`/`（Layout + 仪表盘两个子页）、`/social/callback`、`/pwdExpired`、`/user`（个人中心/消息中心）、`/about` |
 
-业务页面（系统管理、监控、租户等）不在初始路由表里，登录成功后由 `routeStore.generateRoutes()` 动态注册。
+业务页面（系统管理、监控、任务调度等）不在初始路由表里，登录成功后由 `routeStore.generateRoutes()` 动态注册。
 
 ## 动态路由注册
 

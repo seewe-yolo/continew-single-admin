@@ -1,4 +1,4 @@
-# ContiNew Admin 多租户中后台管理框架
+# ContiNew Admin 单租户中后台管理框架
 
 <a href="https://github.com/continew-org/continew-admin" title="Current Version" target="_blank">
 <img src="https://img.shields.io/badge/SNAPSHOT-v5.0.0-%23ff3f59.svg" alt="Current Version" />
@@ -46,7 +46,11 @@
 
 **AI 编程纪元已经开启，基于 ContiNew 项目开发，让 AI 助手“学习”更优雅的代码规范，“写出”更优质的代码。**
 
-ContiNew Admin（Continue New Admin），页面现代美观，且专注设计与代码细节的 **高质量多租户中后台** 管理系统框架。开箱即用，持续迭代优化，持续提供舒适的开发体验。
+ContiNew Admin（Continue New Admin），页面现代美观，且专注设计与代码细节的 **高质量单租户中后台管理系统框架**。开箱即用，持续迭代优化，持续提供舒适的开发体验。
+
+> **数据库兼容性**
+>
+> 本版本仅支持全新单租户初始化，不支持将既有多租户数据库原地转换。旧库可能保留租户字段并包含多个租户的数据，使用前请备份需要保留的数据，再重建并重新初始化数据库。详见[数据库升级说明](https://continew.top/docs/admin/reference/faq)。
 
 当前采用的技术栈：Spring Boot3（Java17）、Vue3 & Arco Design & TS & Vite、Sa-Token、MyBatis Plus、Redisson、FastExcel、CosId、JetCache、JustAuth、Crane4j、Spring Doc、Hutool 等。
 
@@ -129,7 +133,7 @@ public class DeptController extends BaseController<DeptService, DeptResp, DeptDe
 
 我们还进行了全局 Lombok 配置，继承场景默认自动应用 `@EqualsAndHashCode(callSuper = true)` 和 `@ToString(callSuper = true)`，无需手动添加。同时主动禁用了部分 Lombok 注解（如 `@Val`、`@Log4j` 等），避免“又菜又爱玩”的 partner 滥用。
 
-**9.全能业务脚手架：** 支持 **SaaS 租户架构**，基于 RBAC 的权限控制与通用数据权限管理。精心设计的 UI 界面与色彩主题，兼具美观与实用性。内置丰富的通用业务解决方案：第三方登录、邮箱/短信服务（含生产级漏洞处理方案）、个人中心、用户管理、角色管理、组织管理、系统配置、系统日志、消息中心、通知公告等，逻辑闭环，开箱即用。
+**9.全能业务脚手架：** 面向单租户部署，提供基于 RBAC 的权限控制与通用数据权限管理。精心设计的 UI 界面与色彩主题，兼具美观与实用性。内置丰富的通用业务解决方案：第三方登录、邮箱/短信服务（含生产级漏洞处理方案）、个人中心、用户管理、角色管理、组织管理、系统配置、系统日志、消息中心、通知公告等，逻辑闭环，开箱即用。
 
 > 优秀的中后台框架不仅提供组件集成与配置，封装好用的工具，更应提供通用基础业务设计及解决方案，为初创团队减负。
 
@@ -170,8 +174,6 @@ public class DeptController extends BaseController<DeptService, DeptResp, DeptDe
 - 日志管理：管理系统登录日志、操作日志，支持查看日志详情，包含请求头、响应头等报文信息
 - 短信日志：管理系统短信发送日志，支持删除、导出 
 - 应用管理：管理第三方系统应用 AK、SK，包含新增、修改、删除、查看密钥、重置密钥等功能，支持设置密钥有效期
-- 租户管理：管理租户信息，包含新增、修改、删除、分配角色等功能
-- 租户套餐：管理租户套餐信息，包含新增、修改、删除、查看等功能
 - 任务管理：管理系统定时任务，包含新增、修改、删除、执行功能，支持 Cron（可配置式生成 Cron 表达式） 和固定频率
 - 任务日志：管理定时任务执行日志，包含停止、重试指定批次等功能
 - 代码生成：提供根据数据库表自动生成相应的前后端 CRUD 代码的功能，支持同步最新表结构及代码生成预览
@@ -366,7 +368,7 @@ continew-admin
 │  │  │     └─ mapper（系统管理相关 Mapper XML 文件目录）
 │  │  └─ test（测试相关代码目录）
 │  └─ pom.xml
-├─ continew-plugin（插件模块，存放能力开放、租户等扩展模块，后续会进行插件化改造）
+├─ continew-plugin（插件模块，存放能力开放、任务调度与代码生成等独立插件）
 │  ├─ continew-plugin-open（能力开放插件模块）
 │  │  ├─ src
 │  │  │  ├─ main/java/top/continew/admin/open
@@ -382,24 +384,6 @@ continew-admin
 │  │  │  │  ├─ handler（能力开放相关处理器）
 │  │  │  │  ├─ sign（能力开放相关 API 参数签名算法）
 │  │  │  │  └─ config（能力开放相关配置）
-│  │  │  └─ test（测试相关代码目录）
-│  │  └─ pom.xml
-│  ├─ continew-plugin-tenant（租户插件模块）
-│  │  ├─ src
-│  │  │  ├─ main/java/top/continew/admin/tenant
-│  │  │  │  ├─ api（租户相关公共业务 API 实现）
-│  │  │  │  ├─ controller（租户相关 API）
-│  │  │  │  ├─ service（租户相关业务接口及实现类）
-│  │  │  │  ├─ mapper（租户相关 Mapper）
-│  │  │  │  ├─ model（租户相关模型）
-│  │  │  │  │  ├─ entity（租户相关实体）
-│  │  │  │  │  ├─ query（租户相关查询条件）
-│  │  │  │  │  ├─ req（租户相关请求参数（Request））
-│  │  │  │  │  └─ resp（租户相关响应参数（Response））
-│  │  │  │  ├─ enums（租户相关枚举）
-│  │  │  │  ├─ constant（租户相关常量类）
-│  │  │  │  ├─ util（租户相关工具类）
-│  │  │  │  └─ config（租户相关配置）
 │  │  │  └─ test（测试相关代码目录）
 │  │  └─ pom.xml
 │  ├─ continew-plugin-schedule（任务调度插件模块）

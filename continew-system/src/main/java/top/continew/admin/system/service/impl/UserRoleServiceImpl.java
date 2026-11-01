@@ -26,15 +26,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.continew.admin.common.context.RoleContext;
-import top.continew.admin.common.enums.RoleCodeEnum;
 import top.continew.admin.system.constant.SystemConstants;
 import top.continew.admin.system.mapper.UserRoleMapper;
 import top.continew.admin.system.model.entity.UserRoleDO;
 import top.continew.admin.system.model.entity.user.UserDO;
 import top.continew.admin.system.model.query.RoleUserQuery;
 import top.continew.admin.system.model.resp.role.RoleUserResp;
-import top.continew.admin.system.service.RoleService;
 import top.continew.admin.system.service.UserRoleService;
 import top.continew.admin.system.service.UserService;
 import top.continew.starter.core.util.CollUtils;
@@ -46,7 +43,6 @@ import top.continew.starter.extension.crud.model.resp.PageResp;
 import jakarta.annotation.Resource;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 /**
  * 用户和角色业务实现
@@ -59,9 +55,6 @@ import java.util.Set;
 public class UserRoleServiceImpl implements UserRoleService {
 
     private final UserRoleMapper baseMapper;
-    @Lazy
-    @Resource
-    private RoleService roleService;
     @Lazy
     @Resource
     private UserService userService;
@@ -94,12 +87,8 @@ public class UserRoleServiceImpl implements UserRoleService {
             CheckUtils.throwIfNotEmpty(disjunctionRoleIds, "[{}] 是系统内置用户，不允许变更角色",
                 userDO.getNickname());
         }
-        // 超级管理员和租户管理员角色不允许分配
+        // 超级管理员角色不允许分配
         CheckUtils.throwIf(roleIds.contains(SystemConstants.SUPER_ADMIN_ROLE_ID), "不允许分配超级管理员角色");
-        Set<String> roleCodeSet =
-            CollUtils.mapToSet(roleService.listByUserId(userId), RoleContext::getCode);
-        CheckUtils.throwIf(roleCodeSet.contains(RoleCodeEnum.TENANT_ADMIN.getCode()),
-            "不允许分配系统管理员角色");
         // 检查是否有变更
         List<Long> oldRoleIdList = baseMapper.lambdaQuery()
             .select(UserRoleDO::getRoleId)

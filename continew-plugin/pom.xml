@@ -13,13 +13,13 @@
     <packaging>pom</packaging>
 
     <name>${project.artifactId}</name>
-    <description>插件模块（存放能力开放、租户等扩展模块）</description>
+    <description>插件模块（存放功能扩展模块）</description>
 
     <modules>
         <module>continew-plugin-open</module>
-        <module>continew-plugin-tenant</module>
         <module>continew-plugin-schedule</module>
         <module>continew-plugin-generator</module>
+        <module>continew-plugin-approval</module>
     </modules>
 
     <dependencies>

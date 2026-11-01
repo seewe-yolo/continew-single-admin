@@ -4,7 +4,11 @@ description: 从克隆仓库到登录后台，跑通 ContiNew Admin 后端与前
 icon: Rocket
 ---
 
-**ContiNew Admin** 是基于 Spring Boot 3（Java 17）与 Vue 3（Arco Design、TypeScript、Vite）构建的多租户中后台管理系统框架，后端脚手架能力由 [ContiNew Starter](/docs/starter) 供给。本页的目标只有一个：把项目在本机完整跑起来并登录成功。
+**ContiNew Admin** 是基于 Spring Boot 3（Java 17）与 Vue 3（Arco Design、TypeScript、Vite）构建的单租户中后台管理系统框架，后端脚手架能力由 [ContiNew Starter](/docs/starter) 供给。本页的目标只有一个：把项目在本机完整跑起来并登录成功。
+
+> **数据库兼容性**
+>
+> 本版本只支持全新单租户初始化，不支持将既有多租户数据库原地转换。旧库可能保留租户字段并包含多个租户的数据。使用前请备份需要保留的数据，再重建并重新初始化数据库，详见[数据库升级说明](/docs/admin/reference/faq)。
 
 请按步骤顺序操作，不要跳步。等整套环境确认可用之后，再去做改包名、裁剪模块这类定制动作；到时候出问题，才能确定不是定制引入的。第一次运行遇到报错，先到[常见问题](/docs/admin/reference/faq)按症状对号，大部分启动失败都在那里。
 
@@ -115,15 +119,14 @@ pnpm dev
 
 ## 默认账号
 
-Liquibase 初始化数据内置两个账号（`db/changelog/mysql/main_data.sql`）。
+Liquibase 初始化数据仅内置一个账号（`db/changelog/mysql/main_data.sql`）。
 
 | 账号 | 密码 | 说明 |
 |:-----|:-----|:-----|
 | `admin` | `admin123` | 超级管理员，系统初始用户，不可禁用或删除 |
-| `test` | `test123` | 测试账号 |
 
 <Callout type="warn">
-这两个密码只适用于本地全新初始化的库。演示站的密码以演示页说明为准（可能被访客改过），生产环境首次登录后立即修改默认密码，并参考[部署](/docs/admin/reference/deployment)的生产检查清单。
+默认密码只适用于本地全新初始化的库。演示站的密码以演示页说明为准（可能被访客改过），生产环境首次登录后立即修改默认密码，并参考[部署](/docs/admin/reference/deployment)的生产检查清单。
 </Callout>
 
 ## 接下来
@@ -131,7 +134,7 @@ Liquibase 初始化数据内置两个账号（`db/changelog/mysql/main_data.sql`
 <Cards>
   <Card title="正式开发" description="从建表到页面可用，完整走一遍基于框架的业务开发。" href="/docs/admin/guide/first-feature" />
   <Card title="配置说明" description="配置文件的组织方式、环境变量注入与配置归属原则。" href="/docs/admin/configuration" />
-  <Card title="功能手册" description="系统管理、多租户、任务调度、代码生成等内置功能的使用说明。" href="/docs/admin/manual/system" />
+  <Card title="功能手册" description="系统管理、监控、任务调度、代码生成等内置功能的使用说明。" href="/docs/admin/manual/system" />
   <Card title="快速部署" description="打包、Docker Compose 编排与 Nginx 配置，以及上线前检查清单。" href="/docs/admin/reference/deployment" />
 </Cards>
 

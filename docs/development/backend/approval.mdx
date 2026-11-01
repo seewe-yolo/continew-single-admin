@@ -1,0 +1,59 @@
+---
+title: 审批功能开发
+description: 说明审批插件的模块边界、接口权限、数据快照和状态流转约束。
+---
+
+审批能力位于 `continew-plugin/continew-plugin-approval`，由 `continew-server` 引入。插件使用 `continew-common` 的业务基类和 `UserApi`，用户可用性由 `UserApi.isAvailable(Long id)` 统一判断。
+
+## 模块结构
+
+| 位置 | 职责 |
+|:---|:---|
+| `controller` | 流程定义、申请和任务 REST API |
+| `service/impl/ApprovalEngineServiceImpl` | 发起、同意、拒绝、撤销与节点流转 |
+| `service/ApprovalQueryService` | 当前用户范围内的列表和详情查询 |
+| `service/ApprovalFlowValidator` | 流程节点及动态表单配置校验 |
+| `model/dto` | 流程节点、字段和表单配置 |
+| `mapper` | 定义、实例、任务、历史的持久化 |
+
+模块在根 POM 的依赖管理、`continew-plugin/pom.xml` 和 server POM 注册。数据库初始化脚本位于 `continew-server/src/main/resources/db/changelog/{mysql,postgresql}/plugin/plugin_approval.sql`，由 Liquibase master changelog 管理。
+
+## 接口与权限
+
+| 方法 | 路径 | 权限 |
+|:---|:---|:---|
+| GET | `/approval/definition` | `approval:definition:list`，分页管理列表 |
+| GET | `/approval/definition/list` | `approval:definition:list`，全量列表，供申请选择 |
+| GET | `/approval/definition/{id}` | `approval:definition:get` |
+| POST | `/approval/definition` | `approval:definition:create` |
+| PUT | `/approval/definition/{id}` | `approval:definition:update` |
+| DELETE | `/approval/definition` | `approval:definition:delete` |
+| POST | `/approval/instance/start` | `approval:instance:start` |
+| GET | `/approval/instance` | `approval:instance:list` |
+| GET | `/approval/instance/{id}` | `approval:instance:get` |
+| POST | `/approval/instance/cancel/{id}` | `approval:instance:cancel` |
+| GET | `/approval/task?completed=false\|true` | `approval:task:list` |
+| POST | `/approval/task/approve/{id}` | `approval:task:approve` |
+| POST | `/approval/task/reject/{id}` | `approval:task:reject` |
+
+按钮权限不能替代数据授权。申请列表始终按 `start_user` 过滤，任务列表始终按当前审批人过滤；详情只允许发起人或曾分配到该流程任务的用户读取。审批定义列表也只作为已授权用户可发起流程的来源。
+
+## 状态与并发
+
+实例保存 `flow_config`、`form_config` 快照和提交的 `form_data`，避免定义更新改变进行中的审批。流程按节点顺序推进。`OR` 节点在一人同意后流转，`AND` 节点需要所有当前审批任务都为 `APPROVED`。
+
+同意、拒绝和撤销在事务中先锁定审批实例，再锁定任务行。处理前校验实例仍为 `PENDING`、任务仍为 `PENDING`、任务归当前用户且节点为实例当前节点。拒绝或撤销会终止实例并取消其余待处理任务。
+
+## 表单与流程校验
+
+审批节点目前只支持显式指定用户。表单字段类型为 `TEXT`、`TEXTAREA`、`NUMBER`、`AMOUNT`、`DATE`、`DATERANGE`、`SELECT`、`RADIO`；最多 30 个字段、每个选项列表最多 50 项，表单配置 JSON 不超过 200 KB，提交数据最多 80 个字段。新增字段或节点规则时，需要同时调整 `ApprovalFlowValidator`、前端编辑器、相关测试和文档。
+
+四张审批表为 `approval_definition`、`approval_instance`、`approval_task` 和 `approval_history`。MySQL 使用 JSON，PostgreSQL 使用 JSONB；`ApprovalJsonTypeHandler` 负责读写。新增数据库字段时同步两方言 Liquibase SQL。
+
+## 相关源码
+
+- [审批引擎](https://github.com/continew-org/continew-admin/blob/dev/continew-plugin/continew-plugin-approval/src/main/java/top/continew/admin/approval/service/impl/ApprovalEngineServiceImpl.java)
+- [流程校验器](https://github.com/continew-org/continew-admin/blob/dev/continew-plugin/continew-plugin-approval/src/main/java/top/continew/admin/approval/service/ApprovalFlowValidator.java)
+- [查询授权](https://github.com/continew-org/continew-admin/blob/dev/continew-plugin/continew-plugin-approval/src/main/java/top/continew/admin/approval/service/ApprovalQueryService.java)
+- [审批插件测试](https://github.com/continew-org/continew-admin/tree/dev/continew-plugin/continew-plugin-approval/src/test)
+- [审批管理手册](/docs/admin/manual/approval)

@@ -70,9 +70,4 @@ public class LoginResp implements Serializable {
     @Schema(description = "Refresh Token（浏览器 Cookie 模式不返回）", example = "rft_xxx")
     private String refreshToken;
 
-    /**
-     * 租户 ID
-     */
-    @Schema(description = "租户 ID", example = "0")
-    private Long tenantId;
 }

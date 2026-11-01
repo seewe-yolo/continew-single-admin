@@ -1,6 +1,6 @@
 ---
 title: 常见问题
-description: 按症状排查 ContiNew Admin 入门阶段的常见问题，覆盖环境、启动、登录、端口与依赖五类。
+description: 按症状排查 ContiNew Admin 入门阶段的常见问题，覆盖环境、启动、数据库兼容、登录、端口与依赖。
 ---
 
 本文按「症状 → 原因 → 处理」组织入门阶段的常见问题，定位到具体配置键与报错特征。配置细节见 [配置说明](/docs/admin/configuration)，部署细节见 [部署](./deployment)。
@@ -49,11 +49,15 @@ Wrapper 首次运行要从 `repo.maven.apache.org` 下载 Maven 3.9.16，网络�
 
 确认 Redis 已启动且监听 6379；dev 默认密码 `123456`，本机无密码就把 `application-dev.yml` 中 `spring.data.redis.password` 一行注释掉；改了地址用 `REDIS_HOST`、`REDIS_PORT`、`REDIS_PWD`、`REDIS_DB` 覆盖。
 
+### 从多租户版本切换到单租户版本
+
+单租户版本仅支持从空数据库初始化，不支持将既有多租户数据库原地转换。旧库可能保留租户字段，也可能已有多个租户的数据。使用本版本前，先备份需要保留的数据，再重建并重新初始化数据库；不要直接让本版本连接旧库。
+
 ### 启动报「Field 'xxx' doesn't have a default value」或表不存在
 
 原因多为旧库残留。Liquibase 按 `db/changelog/db.changelog-master.yaml` 管理变更，升级版本后旧库结构与新脚本冲突，或首次启动中断导致表没建全。
 
-全新环境直接删库重建再启动，Liquibase 会从头执行；已有数据的库不要删，先核对 `DATABASECHANGELOG` 表执行记录，再对照仓库 `db/changelog` 目录手工补齐缺失变更。
+全新环境直接删库重建再启动，Liquibase 会从头执行；除「从多租户版本切换到单租户版本」所述情况外，其他需要保留数据的库不要删，先核对 `DATABASECHANGELOG` 表执行记录，再对照仓库 `db/changelog` 目录手工补齐缺失变更。
 
 ### prod 启动即失败，报占位符无法解析
 

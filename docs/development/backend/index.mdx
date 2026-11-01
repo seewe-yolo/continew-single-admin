@@ -15,7 +15,7 @@ ContiNew Admin 后端基于 Spring Boot 3.5.16（Java 17），脚手架能力由
 
 ### 内部 API 解耦
 
-跨模块调用不直接依赖对方 Service。被调方在 `continew-common` 的 `top.continew.admin.common.api` 包定义接口（如 `UserApi`、`TenantApi`），业务模块在自己的 `api/` 子包提供实现并注册为 Spring Bean，调用方只注入接口。模块依赖保持 server → system → common 单向，不会出现循环依赖。`continew-plugin-tenant` 的 `TenantApiImpl`、`continew-system` 的 `UserApiImpl` 都是这一模式的实例。
+跨模块调用不直接依赖对方 Service。被调方在 `continew-common` 的 `top.continew.admin.common.api` 包定义接口（如 `UserApi`），业务模块在自己的 `api/` 子包提供实现并注册为 Spring Bean，调用方只注入接口。模块依赖保持 server → system → common 单向，不会出现循环依赖。`continew-system` 的 `UserApiImpl` 是这一模式的实例。
 
 ### 全局响应
 
@@ -43,11 +43,6 @@ Controller 直接返回业务对象，Graceful Response（5.0.5-boot3）在出�
     title="数据权限"
     description="Mapper 继承 DataPermissionMapper 即接入行级数据权限，五种数据范围由角色-部门关系驱动。"
     href="/docs/admin/development/backend/data-permission"
-  />
-  <Card
-    title="多租户接入"
-    description="新业务表加 tenant_id 字段并继承 TenantBaseDO 即纳入行级租户隔离，ignore-tables 白名单放行长共享表。"
-    href="/docs/admin/development/backend/tenant"
   />
   <Card
     title="接口文档"

@@ -22,13 +22,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
 import top.continew.admin.auth.config.OnlineUserProperties;
 import top.continew.admin.auth.model.query.OnlineUserQuery;
 import top.continew.admin.auth.model.resp.OnlineUserResp;
@@ -38,7 +34,6 @@ import top.continew.starter.auth.refresh.token.model.RefreshSession;
 import top.continew.starter.auth.refresh.token.model.SessionView;
 import top.continew.starter.auth.refresh.token.service.SessionInvalidationService;
 import top.continew.starter.auth.refresh.token.service.SessionQueryService;
-import top.continew.starter.extension.tenant.context.TenantContextHolder;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -55,20 +50,6 @@ import java.util.Map;
 class OnlineUserServiceImplTest {
 
     private static final long ONE_DAY_MILLIS = 24 * 60 * 60 * 1000L;
-
-    private MockedStatic<TenantContextHolder> tenantContextHolder;
-
-    @BeforeEach
-    void setUp() {
-        // 会话查询前会判断多租户是否启用，静态上下文在单元测试里没有 Spring 容器可用
-        tenantContextHolder = mockStatic(TenantContextHolder.class);
-        tenantContextHolder.when(TenantContextHolder::isTenantEnabled).thenReturn(false);
-    }
-
-    @AfterEach
-    void tearDown() {
-        tenantContextHolder.close();
-    }
 
     @Test
     void shouldListRefreshSessionAfterAccessTokenExpires() {

@@ -32,21 +32,19 @@ CREATE TABLE IF NOT EXISTS `sys_post` (
     `create_time` datetime     NOT NULL                    COMMENT '创建时间',
     `update_user` bigint(20)   DEFAULT NULL                COMMENT '修改人',
     `update_time` datetime     DEFAULT NULL                COMMENT '修改时间',
-    `tenant_id`   bigint(20)   NOT NULL DEFAULT 0          COMMENT '租户ID',
     `deleted`     bigint(20)   NOT NULL DEFAULT 0          COMMENT '是否已删除（0：否；id：是）',
     PRIMARY KEY (`id`),
-    UNIQUE INDEX `uk_name_tenant_id_deleted` (`name`, `tenant_id`, `deleted`),
+    UNIQUE INDEX `uk_name_deleted` (`name`, `deleted`),
     INDEX `idx_create_user`(`create_user`),
     INDEX `idx_update_user`(`update_user`),
-    INDEX `idx_tenant_id` (`tenant_id`),
     INDEX `idx_deleted` (`deleted`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='岗位表';
 ```
 
 字段注释会成为生成代码的类注释与文档描述，认真写。走正式变更管理时，把建表语句加入 `continew-server/src/main/resources/db/changelog/mysql` 并在 `db.changelog-master.yaml` 登记；仓库约定数据库结构变更同时提供 MySQL 与 PostgreSQL 两套 SQL（见 AGENTS.md）。上面的 DDL 是 MySQL 方言，PostgreSQL 版本需另写到 `db/changelog/postgresql`。`db.changelog-master.yaml` 默认启用 MySQL includes；选择 PostgreSQL 部署时按[部署](/docs/admin/reference/deployment#切换到-postgresql)的步骤切换 includes。
 
-<Callout type="warn">
-表名带 `tenant_id` 列即纳入行级租户隔离（继承 `TenantBaseDO` 的实体自动带出）。不需要租户隔离的公共表，要把表名加入 `continew-starter.tenant.ignore-tables` 白名单，机制见[多租户接入](/docs/admin/development/backend/tenant)。
+<Callout type="info">
+实体继承 common 的 `BaseDO` 后，公共字段由 `MyBatisPlusMetaObjectHandler` 自动填充。当前按单租户模型运行，普通业务表无需添加租户字段；如需按部门或创建人限制查询范围，参考[数据权限指南](/docs/admin/development/backend/data-permission)。
 </Callout>
 
 ## 第 2 步：代码生成
@@ -106,7 +104,7 @@ CREATE TABLE IF NOT EXISTS `sys_post` (
 
 1. 列表能打开（分页接口 `GET /system/post` 通，权限码 `system:post:list` 已生效）；
 2. 新增一条岗位并能在列表看到（`POST /system/post`，`system:post:create`）；
-3. 用一个未授权该菜单的测试账号登录，确认看不到入口、直调接口返回无权限。
+3. 新建一个未授权该菜单的普通用户并登录，确认看不到入口、直调接口返回无权限。
 
 到这一步功能就算完整落地了。之后再把包名、模块名、品牌元素改成你自己的项目信息；改完跑一遍 `./mvnw verify`（后端四道门禁）与 `pnpm lint && pnpm typecheck && pnpm build`（前端三道门禁）确认没有被定制破坏。
 

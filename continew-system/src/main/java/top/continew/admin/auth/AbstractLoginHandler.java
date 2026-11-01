@@ -26,7 +26,6 @@ import top.continew.admin.system.service.OptionService;
 import top.continew.admin.system.service.RoleService;
 import top.continew.admin.system.service.UserService;
 import top.continew.starter.core.util.validation.Validator;
-import top.continew.starter.extension.tenant.context.TenantContextHolder;
 
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -77,8 +76,7 @@ public abstract class AbstractLoginHandler<T extends LoginReq> implements LoginH
     protected LoginResp authenticate(UserDO user, ClientResp client, HttpServletRequest request,
         HttpServletResponse response) {
         // 所有登录方式共用一套令牌签发流程，避免某种登录方式遗漏 Refresh Token。
-        return authTokenService.issue(user, client, TenantContextHolder.getTenantId(), request,
-            response);
+        return authTokenService.issue(user, client, request, response);
     }
 
 }

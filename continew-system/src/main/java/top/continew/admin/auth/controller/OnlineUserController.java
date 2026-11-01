@@ -32,7 +32,6 @@ import org.springframework.web.bind.annotation.RestController;
 import top.continew.admin.auth.model.query.OnlineUserQuery;
 import top.continew.admin.auth.model.resp.OnlineUserResp;
 import top.continew.admin.auth.service.OnlineUserService;
-import top.continew.admin.common.context.UserContextHolder;
 import top.continew.starter.auth.refresh.token.api.AuthSessionConstants;
 import top.continew.starter.auth.refresh.token.model.SessionView;
 import top.continew.starter.auth.refresh.token.service.SessionInvalidationService;
@@ -40,10 +39,8 @@ import top.continew.starter.auth.refresh.token.service.SessionQueryService;
 import top.continew.starter.core.util.validation.CheckUtils;
 import top.continew.starter.extension.crud.model.query.PageQuery;
 import top.continew.starter.extension.crud.model.resp.PageResp;
-import top.continew.starter.extension.tenant.context.TenantContextHolder;
 
 import jakarta.validation.Valid;
-import java.util.Objects;
 
 /**
  * 在线用户 API
@@ -92,12 +89,6 @@ public class OnlineUserController {
         CheckUtils.throwIfEqual(sessionId, currentSessionId, "不能强退自己");
         SessionView targetSession = sessionQueryService.getSession(sessionId);
         CheckUtils.throwIfNull(targetSession, "登录会话不存在");
-        // 超级管理员可以跨租户管理在线用户；其他管理员只能操作当前租户，避免仅凭
-        // 一个 Access Token 就跨租户撤销会话。
-        if (TenantContextHolder.isTenantEnabled() && !UserContextHolder.isSuperAdmin()) {
-            CheckUtils.throwIf(() -> !Objects.equals(TenantContextHolder.getTenantId(),
-                targetSession.getTenantId()), "您当前没有操作该租户登录会话的权限");
-        }
         // Session 是登录态的权威记录；删除后该设备的全部 Access/Refresh Token 都失效。
         sessionInvalidationService.revokeSession(sessionId);
     }

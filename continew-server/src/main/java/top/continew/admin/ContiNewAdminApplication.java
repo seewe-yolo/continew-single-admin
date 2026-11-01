@@ -101,7 +101,7 @@ public class ContiNewAdminApplication implements ApplicationRunner {
         log.info("问题反馈: https://github.com/continew-org/continew-admin/issues");
         log.info("常见问题: https://continew.top/docs/admin/reference/faq");
         log.info("更新日志: https://continew.top/docs/admin/reference/changelog");
-        log.info("ContiNew Admin: 持续迭代优化的，高质量多租户中后台管理系统框架");
+        log.info("ContiNew Admin: 中后台管理系统框架");
         log.info("--------------------------------------------------------");
     }
 }

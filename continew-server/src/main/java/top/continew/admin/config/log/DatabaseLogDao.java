@@ -22,7 +22,6 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.core.util.URLUtil;
-import cn.hutool.extra.spring.SpringUtil;
 import cn.hutool.http.HttpStatus;
 import cn.hutool.json.JSONUtil;
 import lombok.RequiredArgsConstructor;
@@ -42,9 +41,6 @@ import top.continew.admin.system.service.UserService;
 import top.continew.starter.core.constant.StringConstants;
 import top.continew.starter.core.util.ExceptionUtils;
 import top.continew.starter.core.util.StrUtils;
-import top.continew.starter.extension.tenant.autoconfigure.TenantProperties;
-import top.continew.starter.extension.tenant.context.TenantContextHolder;
-import top.continew.starter.extension.tenant.util.TenantUtils;
 import top.continew.starter.log.dao.LogDao;
 import top.continew.starter.log.model.LogRecord;
 import top.continew.starter.log.model.LogRequest;
@@ -91,15 +87,6 @@ public class DatabaseLogDao implements LogDao {
         // 设置操作人
         this.setCreateUser(logDO, logRequest, logResponse);
         // 保存记录
-        if (TenantContextHolder.isTenantEnabled()) {
-            // 异步无法获取租户 ID
-            String tenantId = this.getRequestHeaders(logRequest)
-                .get(SpringUtil.getBean(TenantProperties.class).getTenantIdHeader());
-            if (StrUtil.isNotBlank(tenantId)) {
-                TenantUtils.execute(Long.parseLong(tenantId), () -> logMapper.insert(logDO));
-                return;
-            }
-        }
         logMapper.insert(logDO);
     }
 

@@ -22,7 +22,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import top.continew.admin.common.api.system.UserApi;
 import top.continew.admin.common.constant.CacheConstants;
+import top.continew.admin.common.enums.DisEnableStatusEnum;
 import top.continew.admin.system.mapper.user.UserMapper;
+import top.continew.admin.system.model.entity.user.UserDO;
 import top.continew.admin.system.model.req.user.UserPasswordResetReq;
 import top.continew.admin.system.service.UserService;
 
@@ -51,5 +53,11 @@ public class UserApiImpl implements UserApi {
         UserPasswordResetReq req = new UserPasswordResetReq();
         req.setNewPassword(newPassword);
         baseService.resetPassword(req, id);
+    }
+
+    @Override
+    public boolean isAvailable(Long id) {
+        UserDO user = baseMapper.selectById(id);
+        return user != null && DisEnableStatusEnum.ENABLE.equals(user.getStatus());
     }
 }

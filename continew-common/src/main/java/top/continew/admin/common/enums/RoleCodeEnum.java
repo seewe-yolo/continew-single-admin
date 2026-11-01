@@ -16,11 +16,8 @@
 
 package top.continew.admin.common.enums;
 
-import cn.hutool.extra.spring.SpringUtil;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import top.continew.admin.common.config.TenantExtensionProperties;
-import top.continew.starter.extension.tenant.context.TenantContextHolder;
 
 import java.util.List;
 
@@ -38,11 +35,6 @@ public enum RoleCodeEnum {
      * 超级管理员（内置且仅有一位超级管理员）
      */
     SUPER_ADMIN("super_admin", "超级管理员"),
-
-    /**
-     * 租户管理员
-     */
-    TENANT_ADMIN("admin", "系统管理员"),
 
     /**
      * 系统管理员
@@ -63,12 +55,7 @@ public enum RoleCodeEnum {
      * @return 超级管理员角色编码列表
      */
     public static List<String> getSuperRoleCodes() {
-        if (TenantContextHolder.isTenantDisabled()
-            || SpringUtil.getBean(TenantExtensionProperties.class)
-                .isDefaultTenant()) {
-            return List.of(SUPER_ADMIN.getCode());
-        }
-        return List.of(SUPER_ADMIN.getCode(), TENANT_ADMIN.getCode());
+        return List.of(SUPER_ADMIN.getCode());
     }
 
     /**

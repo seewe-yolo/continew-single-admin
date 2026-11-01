@@ -17,19 +17,15 @@
 package top.continew.admin.system.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.lang.tree.Tree;
 import cn.hutool.core.util.StrUtil;
 import com.alicp.jetcache.anno.Cached;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.continew.admin.common.base.service.BaseServiceImpl;
-import top.continew.admin.common.config.TenantExtensionProperties;
 import top.continew.admin.common.constant.CacheConstants;
 import top.continew.admin.common.enums.DisEnableStatusEnum;
-import top.continew.admin.common.enums.RoleCodeEnum;
 import top.continew.admin.system.constant.SystemConstants;
 import top.continew.admin.system.enums.MenuTypeEnum;
 import top.continew.admin.system.mapper.MenuMapper;
@@ -38,15 +34,11 @@ import top.continew.admin.system.model.query.MenuQuery;
 import top.continew.admin.system.model.req.MenuReq;
 import top.continew.admin.system.model.resp.MenuResp;
 import top.continew.admin.system.service.MenuService;
-import top.continew.admin.system.service.RoleService;
 import top.continew.starter.cache.redisson.util.RedisUtils;
 import top.continew.starter.core.constant.StringConstants;
-import top.continew.starter.core.util.CollUtils;
 import top.continew.starter.core.util.validation.CheckUtils;
 import top.continew.starter.extension.crud.model.query.SortQuery;
-import top.continew.starter.extension.tenant.context.TenantContextHolder;
 
-import jakarta.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -63,17 +55,8 @@ public class MenuServiceImpl
     extends BaseServiceImpl<MenuMapper, MenuDO, MenuResp, MenuResp, MenuQuery, MenuReq>
     implements MenuService {
 
-    private final TenantExtensionProperties tenantExtensionProperties;
-    @Lazy
-    @Resource
-    private RoleService roleService;
-
     @Override
     public List<Tree<Long>> tree(MenuQuery query, SortQuery sortQuery, boolean isSimple) {
-        if (TenantContextHolder.isTenantEnabled() && !tenantExtensionProperties.isDefaultTenant()) {
-            query = query == null ? new MenuQuery() : query;
-            query.setExcludeMenuIdList(this.listExcludeTenantMenu());
-        }
         return this.tree(query, sortQuery, isSimple, true);
     }
 
@@ -129,15 +112,6 @@ public class MenuServiceImpl
         List<MenuResp> list = BeanUtil.copyToList(menuList, MenuResp.class);
         list.forEach(super::fill);
         return list;
-    }
-
-    @Override
-    public List<Long> listExcludeTenantMenu() {
-        Long roleId = roleService.getIdByCode(RoleCodeEnum.TENANT_ADMIN.getCode());
-        List<Long> allMenuIdList = CollUtils.mapToList(super.list(), MenuDO::getId);
-        List<Long> menuIdList =
-            CollUtils.mapToList(baseMapper.selectListByRoleId(roleId), MenuDO::getId);
-        return CollUtil.disjunction(allMenuIdList, menuIdList).stream().toList();
     }
 
     /**

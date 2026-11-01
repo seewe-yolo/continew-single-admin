@@ -69,13 +69,6 @@
                 <version>${revision}</version>
             </dependency>
 
-            <!-- 租户插件（后续会改造为独立插件） -->
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>continew-plugin-tenant</artifactId>
-                <version>${revision}</version>
-            </dependency>
-
             <!-- 任务调度插件（后续会改造为独立插件） -->
             <dependency>
                 <groupId>${project.groupId}</groupId>
@@ -87,6 +80,13 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>continew-plugin-generator</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <!-- 审批流程插件 -->
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>continew-plugin-approval</artifactId>
                 <version>${revision}</version>
             </dependency>
         </dependencies>

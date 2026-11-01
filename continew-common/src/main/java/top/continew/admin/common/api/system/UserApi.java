@@ -48,4 +48,13 @@ public interface UserApi {
      * @param id          ID
      */
     void resetPassword(String newPassword, Long id);
+
+    /**
+     * 判断用户是否存在且处于启用状态
+     *
+     * @param id 用户 ID
+     * @return 是否可用
+     * @since 5.0.0
+     */
+    boolean isAvailable(Long id);
 }

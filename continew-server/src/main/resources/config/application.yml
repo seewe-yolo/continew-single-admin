@@ -203,45 +203,6 @@ continew-starter.crud:
     name-key: title
     weight-key: sort
 
---- ### 租户配置
-continew-starter.tenant:
-  enabled: true
-  # 隔离级别（默认：LINE，行级）
-  isolation-level: LINE
-  # 请求头中租户 ID 键名
-  tenant-id-header: X-Tenant-Id
-  # 请求头中租户编码键名
-  tenant-code-header: X-Tenant-Code
-  # 默认租户 ID：超级管理员用户所在租户（默认：0）
-  default-tenant-id: 0
-  # 忽略表（忽略拼接租户条件）
-  ignore-tables:
-    - tenant # 租户表
-    - tenant_package # 租户套餐表
-    - tenant_package_menu # 租户套餐与菜单关联表
-    - gen_config # 代码生成配置表
-    - gen_field_config # 代码生成字段配置表
-    - sys_menu # 菜单表
-    - sys_dict # 字典表
-    - sys_dict_item # 字典项表
-    - sys_option # 参数表
-    - sys_storage # 存储表
-    - sys_sms_config # 短信配置表
-    - sys_sms_log # 短信日志表
-    - sys_client # 客户端表
-    - sys_app # 应用表
-  # 忽略菜单 ID（租户不能使用的菜单）
-  ignore-menus:
-    - 1050 # 菜单管理
-    - 1130 # 字典管理
-    - 1140 # 字典项管理
-    - 1150 # 系统配置
-    - 2050 # 短信日志
-    - 3000 # 租户管理
-    - 7000 # 能力开放
-    - 8000 # 任务调度
-    - 9000 # 开发工具
-
 --- ### 限流器配置
 continew-starter.rate-limiter:
   enabled: true
@@ -343,17 +304,6 @@ cosid:
       converter:
         friendly:
           pad-start: true
-    ## 多 ID 生成器配置
-    provider:
-      # 租户编码生成器
-      tenant-code:
-        converter:
-          type: RADIX
-          prefix: T
-          radix:
-            char-size: 11
-            pad-start: true
-
 --- ### Refresh Token 配置
 ## 浏览器使用 HttpOnly Cookie，App / 小程序使用 BODY 模式。
 continew-starter.refresh-token:

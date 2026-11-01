@@ -27,13 +27,11 @@ import top.continew.admin.auth.model.resp.OnlineUserResp;
 import top.continew.admin.auth.service.OnlineUserService;
 import top.continew.admin.auth.service.SessionActivityService;
 import top.continew.admin.auth.support.ClientPolicyCache;
-import top.continew.admin.common.context.UserContextHolder;
 import top.continew.starter.auth.refresh.token.model.SessionView;
 import top.continew.starter.auth.refresh.token.service.SessionInvalidationService;
 import top.continew.starter.auth.refresh.token.service.SessionQueryService;
 import top.continew.starter.extension.crud.model.query.PageQuery;
 import top.continew.starter.extension.crud.model.resp.PageResp;
-import top.continew.starter.extension.tenant.context.TenantContextHolder;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -67,13 +65,10 @@ public class OnlineUserServiceImpl implements OnlineUserService {
     @Override
     public List<OnlineUserResp> list(OnlineUserQuery query) {
         List<OnlineUserResp> list = new ArrayList<>();
-        Long tenantId = TenantContextHolder.isTenantEnabled() && !UserContextHolder.isSuperAdmin()
-            ? TenantContextHolder.getTenantId()
-            : null;
         long now = System.currentTimeMillis();
         // Refresh Session 才是可恢复登录态的事实源。Access Token 即使已经自然过期，
         // 只要长期会话仍有效，管理员就必须能够看到并撤销该设备登录。
-        List<SessionView> sessions = sessionQueryService.listSessions(tenantId).stream()
+        List<SessionView> sessions = sessionQueryService.listSessions(null).stream()
             // 只有绝对有效期到期才隐藏：此时会话确实不可用。闲置超时的会话要等到下一次请求
             // （刷新时判定并撤销）才消失，在此之前它仍占用登录名额，必须继续展示，否则管理员
             // 既看不到、也没法强退这台还没被回收的设备。

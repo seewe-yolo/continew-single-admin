@@ -10,7 +10,6 @@
 - **内部模块依赖统一写 `${project.groupId}`**：模块 POM 中的内部依赖 groupId 一律使用 `${project.groupId}`，版本由根 POM `dependencyManagement`（`${revision}`）统一供给；`<parent>` 与项目自身坐标保持字面量。
 - **新增模块需在两处注册**：根 POM 的 `<modules>` 与根 POM `dependencyManagement`。
 - **数据库结构变更必须走 Liquibase**：新增或修改变更集后需在 `continew-server/src/main/resources/db/changelog/db.changelog-master.yaml` 登记，且 `mysql/` 与 `postgresql/` 两套 SQL 必须同步提供。
-- **新增公共表需登记租户白名单**：不参与租户隔离的表必须加入 `continew-starter.tenant.ignore-tables` 配置。
 - **禁止硬编码敏感凭据**：密码、密钥、token 等不得硬编码进配置或源码。`application-prod.yml` 一律使用**无默认值**的环境变量占位符（如 `${DB_PWD}`，未配置即启动失败，强制注入）；`application-dev.yml` 可保留本地示例默认值以保证开箱即用。新增凭据遵循同一模式。
 - **披露 AI 使用**：当提交中较大部分由 AI 生成时，请在 commit message 末尾追加 trailer，注明实际使用的智能体，例如：
 
@@ -21,7 +20,7 @@
 
 ## 项目概述
 
-ContiNew Admin（Continue New Admin）是基于 ContiNew Starter 构建的多租户中后台管理系统框架，前后端分离：本仓库为后端（Spring Boot 3.5 / Java 17 的 Maven 多模块工程），前端为独立仓库 `continew-admin-ui`（Vue3 & Arco Design & TS & Vite）。**这是一个可运行的应用项目**（启动类 `top.continew.admin.ContiNewAdminApplication`，位于 continew-server 模块，默认 dev 环境端口 8000），而非类库。
+ContiNew Admin（Continue New Admin）是基于 ContiNew Starter 构建的单租户中后台管理系统，前后端分离：本仓库为后端（Spring Boot 3.5 / Java 17 的 Maven 多模块工程），前端为独立仓库 `continew-admin-ui`（Vue3 & Arco Design & TS & Vite）。**这是一个可运行的应用项目**（启动类 `top.continew.admin.ContiNewAdminApplication`，位于 continew-server 模块，默认 dev 环境端口 8000），而非类库。
 
 **当前版本**：5.0.0-SNAPSHOT（`${revision}` 统一管理） | **主分支**：`dev` | **Java**：JDK 17 | **构建**：Maven 3.9.16（`./mvnw`，Windows 为 `mvnw.cmd`）
 
@@ -34,7 +33,7 @@ Maven 多模块工程，根 `pom.xml` 用 `flatten-maven-plugin` 统一 `${revis
 | `continew-server` | 打包部署入口（启动类 + 通用 controller + Liquibase + 配置文件） |
 | `continew-system` | 核心业务：auth（系统认证）、system（部门/角色/用户/菜单/字典/文件/公告/系统配置等） |
 | `continew-common` | 公共基类、工具、配置（CRUD/MyBatis/Websocket/Doc/Excel/Exception） |
-| `continew-plugin` | 独立可插拔插件：open（能力开放 AK/SK）、tenant（多租户 SaaS）、schedule（任务调度）、generator（代码生成器） |
+| `continew-plugin` | 独立可插拔插件：open（能力开放 AK/SK）、schedule（任务调度）、generator（代码生成器） |
 | `continew-extension` | 可独立部署的扩展服务（continew-extension-schedule-server 为 Snail Job 服务端，可选） |
 
 ### 关键机制
@@ -42,10 +41,9 @@ Maven 多模块工程，根 `pom.xml` 用 `flatten-maven-plugin` 统一 `${revis
 - **内部 API 解耦**：业务模块将对其他模块暴露的公共业务定义为接口，放在 `continew-common` 的 `top.continew.admin.common.api` 包下，由对应 biz 模块的 `api/` 目录提供实现；其他模块依赖 common 的接口而非具体实现，避免循环依赖。新增跨模块调用时遵循此模式。
 - **CRUD 套件**：封装于 ContiNew Starter 的 `continew-starter-crud`。`BaseController<S, L, D, Q, C>` + `@CrudRequestMapping(value, api = {...})` 声明即可自动生成 CRUD 接口，`BaseController.preHandle` 根据 API 类型自动生成并校验权限码（如 `POST /system/user` → `system:user:create`）。
 - **数据填充**：`xxx/container/` 目录配置 Crane4j 容器，基于注解完成数据映射，减少单字段联表查询。
-- **多租户**：`continew-starter.tenant` 行级隔离（LINE），租户 ID 经 `X-Tenant-Id`/`X-Tenant-Code` 头传递，默认租户 `0`。
 - **认证与权限**：Sa-Token + JWT（Token 名 `Authorization`，jwt-simple 模式）；前端传入密码经 RSA 公钥加密，后端 `SecureUtils.decryptPasswordByRsaPrivateKey` 解密；数据权限由 `DataPermissionMapper` 提供。内置用户和角色不允许变更。
 - **缓存**：JetCache 二级缓存（Caffeine + Redisson），`broadcastChannel` 开启多 JVM 本地缓存失效广播。
-- **ID 生成**：CosID 雪花算法（`COSID`），租户编码生成器前缀 `T`。
+- **ID 生成**：CosID 雪花算法（`COSID`）。
 - **全局响应**：Graceful Response 统一封装，响应类 `top.continew.starter.web.model.R`。
 - **任务调度**：`continew-plugin-schedule` 通过 OpenAPI 对接 Snail Job 服务端，`snail-job.enabled: false` 默认关闭。
 
@@ -196,7 +194,7 @@ Sonar 分析使用 `./mvnw verify -Psonar`（激活 JaCoCo），日常 `./mvnw v
 
 - **「介绍」分组置顶（固定风格，与 starter 一致）**：`index.mdx`（快速开始，icon Rocket）+ `introduction.mdx`（什么是 ContiNew Admin，icon CircleQuestionMark）+ `configuration.mdx`（配置说明，icon Settings），三页带 icon，构成学习路径前三步。
 - **双视角叙事路径**：`manual/`（功能手册，面向**使用者**讲「怎么用」）+ `development/`（开发指南，面向**二开者**讲「怎么扩展」，含项目结构 structure）+ `reference/`（环境变量/部署/常见问题/更新日志）。
-- **功能手册与开发指南分家**：同一能力（如数据权限、多租户）分两篇，`manual/` 讲页面操作与配置，`development/` 讲源码扩展点，互不重复。
+- **功能手册与开发指南分家**：同一能力（如认证、数据权限）分两篇，`manual/` 讲页面操作与配置，`development/` 讲源码扩展点，互不重复。
 - **Root Folder**：`docs/meta.json` 标 `root: true`，构成官网侧边栏顶部的项目切换器；每个目录含 `meta.json` 声明页面顺序。
 
 ### frontmatter 与命名

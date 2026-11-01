@@ -80,7 +80,7 @@ public class RoleServiceImpl
         this.checkNameRepeat(req.getName(), null);
         String code = req.getCode();
         this.checkCodeRepeat(code, null);
-        // 防止租户添加超级管理员
+        // 禁止通过角色管理接口创建超级管理员角色
         CheckUtils.throwIfEqual(RoleCodeEnum.SUPER_ADMIN.getCode(), code, "编码 [{}] 禁止使用", code);
         // 新增信息
         Long roleId = super.create(req);
@@ -144,10 +144,7 @@ public class RoleServiceImpl
 
     @Override
     public List<LabelValueResp> dict(RoleQuery query, SortQuery sortQuery) {
-        boolean isTenantAdmin = UserContextHolder.isTenantAdmin();
-        query.setExcludeRoleCodes(isTenantAdmin
-            ? List.of(RoleCodeEnum.SUPER_ADMIN.getCode())
-            : RoleCodeEnum.getSuperRoleCodes());
+        query.setExcludeRoleCodes(RoleCodeEnum.getSuperRoleCodes());
         return super.dict(query, sortQuery);
     }
 

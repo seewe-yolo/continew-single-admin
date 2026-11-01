@@ -66,11 +66,10 @@ description: 在线用户页面展示当前全部有效登录会话，支持按�
 
 ## 强退会话
 
-点击「强退」调用 `DELETE /monitor/online/{sessionId}`，权限码 `monitor:online:kickout`。后端 `OnlineUserController.kickout` 执行三道校验后才撤销会话。
+点击「强退」调用 `DELETE /monitor/online/{sessionId}`，权限码 `monitor:online:kickout`。后端 `OnlineUserController.kickout` 执行两道校验后才撤销会话。
 
 1. 不能强退自己当前的会话，防止管理员把自己踢下线；
 2. 会话必须存在；
-3. 多租户开启时，非超级管理员只能操作本租户的会话，避免仅凭一个 Access Token 跨租户撤销他人登录。
 
 撤销的粒度是整个会话。`SessionInvalidationService.revokeSession` 删除会话记录后，该设备持有的全部 Access Token 与 Refresh Token 立即失效，用户下一次请求会被引导重新登录。
 

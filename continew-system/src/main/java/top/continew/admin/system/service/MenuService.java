@@ -51,10 +51,4 @@ public interface MenuService
      */
     List<MenuResp> listByRoleId(Long roleId);
 
-    /**
-     * 查询租户排除的菜单 ID 列表
-     *
-     * @return 租户排除的菜单 ID 列表
-     */
-    List<Long> listExcludeTenantMenu();
 }

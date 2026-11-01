@@ -67,31 +67,29 @@ const http: AxiosInstance = axios.create({
 
 ## 请求头注入
 
-请求拦截器在每个请求上注入两类请求头（`src/utils/http.ts:207`）。
+请求拦截器为已登录请求注入 `Authorization`（`src/utils/http.ts:211-225`）。
 
-`Authorization` 取内存中的 Access Token，拼成 `Bearer <token>`。Access Token 只保存在内存（`src/features/auth-session/access-token.ts`），不落地 localStorage，浏览器刷新后靠 HttpOnly Cookie 里的 Refresh Token 换新的。
+`Authorization` 取内存中的 Access Token，拼成 `Bearer <token>`。Access Token 只保存在内存（`src/features/auth-session/access-token.ts`），不落地 localStorage；浏览器刷新后靠 HttpOnly Cookie 里的 Refresh Token 换新的。
 
-`X-Tenant-Id` 在租户功能开启（`tenantStore.tenantEnabled`）且已选定租户（`tenantStore.tenantId`）时注入，值来自登录响应或刷新响应。后端多租户插件靠这个头做行级隔离，对应 starter 配置 `continew-starter.tenant.tenant-id-header`。
-
-认证接口有例外处理：`/auth/refresh`、`/auth/logout` 以及账号密码登录的 `/auth/login` 不携带 `X-Tenant-Id`，因为这些请求要么以服务端 Refresh Session 为准，要么以用户显式输入的租户编码为准；社交登录回调则保留授权前选定的租户。请求重试时会复用原始 headers，拦截器在租户状态变化时主动删除旧租户头，避免把上一次会话的租户上下文带给服务端。
+匿名接口的放行范围由后端 `sa-token.extension.security.excludes` 配置决定。401 重试沿用原始请求配置，并使用刷新成功后的 Access Token 更新 `Authorization` 后重发。
 
 ## 401 处理与双令牌刷新
 
-HTTP 状态 401 走 `retryAfterRefresh` 分支（`src/utils/http.ts:165`），处理流程分三步。
+HTTP 状态 401 在响应拦截器中转入 `retryAfterRefresh`（`src/utils/http.ts:285-288`），刷新与重试逻辑见 `src/utils/http.ts:151-176`，处理流程分三步。
 
 <Steps>
   <Step>
     首次 401 触发 `/auth/refresh` 刷新请求，浏览器自动携带 HttpOnly Cookie。同一时间多个 401 请求共用一个单例 Promise（`refreshPromise`），Refresh Token 不会被并发轮换。
   </Step>
   <Step>
-    刷新成功后更新内存中的 Access Token 与租户 ID，给原请求打上 `__isRetryRequest` 标记，换上新 Token 重发。
+    刷新成功后更新内存中的 Access Token，给原请求打上 `__isRetryRequest` 标记，换上新 Token 重发。
   </Step>
   <Step>
     重发后再次 401，或者刷新请求本身返回 401（Refresh Token 确定失效），进入重新登录流程。
   </Step>
 </Steps>
 
-重新登录流程由 `showReLogin` 负责（`src/utils/http.ts:78`）：清理内存 Token 与持久化的用户、路由状态，调用 `/auth/logout` 让服务端清掉 Cookie，然后弹 Modal 引导用户重新登录，确认后跳转 `/login` 并带上 `redirect` 参数。弹窗期间如果用户已在别处重新登录，「认证代次」（auth generation）机制会让旧弹窗失效，不会把新会话重置掉。
+重新登录流程由 `showReLogin` 负责（`src/utils/http.ts:66-103`）：清理内存 Token 与持久化的用户、路由状态，调用 `/auth/logout` 让服务端清掉 Cookie，然后弹 Modal 引导用户重新登录，确认后跳转 `/login` 并带上 `redirect` 参数。弹窗期间如果用户已在别处重新登录，「认证代次」（auth generation）机制会让旧弹窗失效，不会把新会话重置掉。
 
 刷新请求遇到 403、429、5xx 或网络故障时不算终态失败，Cookie 会保留，下一次请求继续尝试刷新。只有刷新返回 401 或业务层明确拒绝（HTTP 200 但 `success: false`）才引导重新登录。
 
@@ -103,7 +101,7 @@ HTTP 状态 401 走 `retryAfterRefresh` 分支（`src/utils/http.ts:165`），�
 
 非 401 的 HTTP 错误按状态码映射到 `StatusCodeMessage` 里的中文提示（如 403「拒绝访问」、500「服务器错误」），映射不到时给通用兜底文案。网络层失败（无响应对象）提示「网络连接失败」。
 
-提示形式按文案长度分流（`src/utils/http.ts:193`）：15 字以内用 `Message`，更长用 `Notification`，都包了一层防重复弹出的 wrapper（`message-error-wrapper` / `notification-error-wrapper`）。
+提示形式按文案长度分流（`src/utils/http.ts:179-189`）：少于 15 字用 `Message`，15 字及以上用 `Notification`，都包了一层防重复弹出的 wrapper（`message-error-wrapper` / `notification-error-wrapper`）。
 
 下载类请求（`responseType: 'blob'`）的失败响应是 JSON 格式的 Blob，响应拦截器会用 `FileReader` 读出 `msg` 再提示，不会让错误以乱码形式吞掉。
 
@@ -118,11 +116,10 @@ export function listNotice(query: NoticePageQuery) {
 }
 ```
 
-不要在页面组件里直接写 `axios.get`，绕过封装意味着丢掉 Token 注入、租户头、401 刷新和错误提示。
+不要在页面组件里直接写 `axios.get`，绕过封装意味着丢掉 `Authorization` 注入、401 刷新和错误提示。
 
 ## 相关源码
 
 - [src/utils/http.ts](https://github.com/continew-org/continew-admin-ui/blob/dev/src/utils/http.ts)：axios 封装本体
 - [src/features/auth-session/](https://github.com/continew-org/continew-admin-ui/tree/dev/src/features/auth-session)：Access Token 存储与认证生命周期锁
-- [src/stores/modules/tenant.ts](https://github.com/continew-org/continew-admin-ui/blob/dev/src/stores/modules/tenant.ts)：租户状态与持久化
 - [src/apis/system/user.ts](https://github.com/continew-org/continew-admin-ui/blob/dev/src/apis/system/user.ts)：API 定义参考实现
